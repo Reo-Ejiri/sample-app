@@ -35,6 +35,7 @@ const labels = {
   delete: "\u524a\u9664",
   saveGame: "\u3053\u306e\u534a\u8358\u3092\u8a18\u9332",
   updateGame: "\u7de8\u96c6\u5185\u5bb9\u3092\u4fdd\u5b58",
+  exportPrefix: "\u9ebb\u96c0\u6210\u7e3e",
 };
 
 const ruleNames = {
@@ -131,6 +132,9 @@ const correctionList = document.querySelector("#correction-list");
 const correctionTotal = document.querySelector("#correction-total");
 const correctionNoteInput = document.querySelector("#correction-note");
 const saveCorrectionButton = document.querySelector("#save-correction");
+const exportJsonButton = document.querySelector("#export-json");
+const importJsonInput = document.querySelector("#import-json");
+const exportCsvButton = document.querySelector("#export-csv");
 
 let state = loadState();
 let editingRecordId = null;
@@ -163,6 +167,48 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+function downloadText(filename, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function csvCell(value) {
+  const text = String(value ?? "");
+  return `"${text.replaceAll('"', '""')}"`;
+}
+
+function exportedState() {
+  return {
+    app: "mahjong-result-calculator",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    state,
+  };
+}
+
+function normalizeImportedState(payload) {
+  const imported = payload?.state || payload;
+
+  if (!imported || typeof imported !== "object" || !Array.isArray(imported.history)) {
+    throw new Error("Invalid import file");
+  }
+
+  return {
+    ...clone(defaultState),
+    ...imported,
+    uma: { ...clone(defaultState).uma, ...(imported.uma || {}) },
+    rules: { ...clone(defaultState).rules, ...(imported.rules || {}) },
+    dateNotes: { ...clone(defaultState).dateNotes, ...(imported.dateNotes || {}) },
+    history: imported.history || [],
+    corrections: imported.corrections || [],
+  };
 }
 
 function ensureStateShape() {
@@ -781,6 +827,50 @@ function renderAll() {
   saveState();
 }
 
+function exportJson() {
+  const filename = `${labels.exportPrefix}-${state.selectedDate}.json`;
+  downloadText(filename, JSON.stringify(exportedState(), null, 2), "application/json");
+}
+
+function importJson(file) {
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    try {
+      const imported = normalizeImportedState(JSON.parse(reader.result));
+
+      if (!confirm("\u73fe\u5728\u306e\u30c7\u30fc\u30bf\u3092\u8aad\u307f\u8fbc\u3093\u3060\u30c7\u30fc\u30bf\u3067\u7f6e\u304d\u63db\u3048\u307e\u3059\u304b\uff1f")) {
+        return;
+      }
+
+      state = imported;
+      editingRecordId = null;
+      renderAll();
+    } catch {
+      alert("\u8aad\u307f\u8fbc\u3081\u306a\u3044JSON\u30d5\u30a1\u30a4\u30eb\u3067\u3059\u3002");
+    } finally {
+      importJsonInput.value = "";
+    }
+  });
+  reader.readAsText(file);
+}
+
+function exportSelectedDayCsv() {
+  const rows = [["date", "rank", "name", "games", "top", "point"]];
+  buildSummary().forEach((player, index) => {
+    rows.push([
+      state.selectedDate,
+      index + 1,
+      player.name,
+      player.games,
+      player.top,
+      Math.round(player.total * 10) / 10,
+    ]);
+  });
+
+  const csv = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
+  downloadText(`${labels.exportPrefix}-${state.selectedDate}.csv`, csv, "text/csv;charset=utf-8");
+}
+
 function updateTableDefaults() {
   if (state.tableSize === 4) {
     state.startScore = 25000;
@@ -920,6 +1010,18 @@ cancelEditButton.addEventListener("click", () => {
   editingRecordId = null;
   renderEditState();
 });
+
+exportJsonButton.addEventListener("click", exportJson);
+
+importJsonInput.addEventListener("change", () => {
+  const [file] = importJsonInput.files;
+
+  if (file) {
+    importJson(file);
+  }
+});
+
+exportCsvButton.addEventListener("click", exportSelectedDayCsv);
 
 saveCorrectionButton.addEventListener("click", () => {
   const items = currentCorrectionItems();

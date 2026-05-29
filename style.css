@@ -172,6 +172,7 @@ h2 {
 .settings,
 .day-panel,
 .rules-panel,
+.share-panel,
 .correction-panel,
 .tournament-panel,
 .entry-panel,
@@ -248,6 +249,7 @@ label {
 .tournament-panel,
 .day-panel,
 .rules-panel,
+.share-panel,
 .correction-panel,
 .entry-panel,
 .result-panel,
@@ -258,6 +260,7 @@ label {
 
 .day-panel,
 .rules-panel,
+.share-panel,
 .correction-panel,
 .tournament-panel,
 .summary-panel,
@@ -386,6 +389,33 @@ textarea:focus {
 
 .rule-note {
   margin-top: 12px;
+}
+
+.share-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.import-button {
+  display: inline-grid;
+  place-items: center;
+  width: auto;
+  min-height: 42px;
+  border-radius: 7px;
+  background: #efe8d6;
+  color: #2c352e;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 14px;
+}
+
+.import-button:hover {
+  background: #e1d3b6;
+}
+
+.import-button input {
+  display: none;
 }
 
 .hidden {
