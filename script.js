@@ -9,6 +9,7 @@ const labels = {
   base: "\u7d20\u70b9",
   uma: "\u30a6\u30de",
   oka: "\u30aa\u30ab",
+  deposit: "\u4f9b\u8a17",
   total: "\u5408\u8a08",
   inputTotal: "\u5165\u529b\u5408\u8a08",
   expected: "\u57fa\u6e96",
@@ -52,6 +53,7 @@ const defaultState = {
   participantCount: 8,
   startScore: 25000,
   returnScore: 30000,
+  depositSticks: 0,
   seats: [
     { playerId: "p1", name: `${labels.player}1`, score: 35000 },
     { playerId: "p2", name: `${labels.player}2`, score: 28000 },
@@ -85,6 +87,7 @@ const formatButtons = [...document.querySelectorAll(".format-button")];
 const tableButtons = [...document.querySelectorAll(".table-button")];
 const startScoreInput = document.querySelector("#start-score");
 const returnScoreInput = document.querySelector("#return-score");
+const depositSticksInput = document.querySelector("#deposit-sticks");
 const okaOutput = document.querySelector("#oka-output");
 const participantCountInput = document.querySelector("#participant-count");
 const tournamentPanel = document.querySelector("#tournament-panel");
@@ -190,6 +193,14 @@ function automaticOka() {
   return ((Number(state.returnScore) - Number(state.startScore)) * state.tableSize) / 1000;
 }
 
+function depositPoint() {
+  return Number(state.depositSticks || 0);
+}
+
+function expectedScoreTotal() {
+  return Number(state.startScore || 0) * state.tableSize - Number(state.depositSticks || 0) * 1000;
+}
+
 function formatScore(value) {
   return Number(value || 0).toLocaleString("ja-JP");
 }
@@ -228,6 +239,7 @@ function calculateResults() {
     const basePoint = (player.score - Number(state.returnScore || 0)) / 1000;
     const uma = Number(state.uma[state.tableSize][rankIndex] || 0);
     const oka = rank === 1 ? automaticOka() : 0;
+    const deposit = rank === 1 ? depositPoint() : 0;
 
     return {
       ...player,
@@ -235,7 +247,8 @@ function calculateResults() {
       basePoint,
       uma,
       oka,
-      point: basePoint + uma + oka,
+      deposit,
+      point: basePoint + uma + oka + deposit,
     };
   });
 }
@@ -251,6 +264,7 @@ function renderSettings() {
 
   startScoreInput.value = state.startScore;
   returnScoreInput.value = state.returnScore;
+  depositSticksInput.value = state.depositSticks;
   participantCountInput.value = state.participantCount;
   okaOutput.textContent = formatPoint(automaticOka());
   tournamentPanel.classList.toggle("hidden", state.format !== "tournament");
@@ -434,7 +448,7 @@ function renderUma() {
 function renderResults() {
   const results = calculateResults();
   const scoreSum = activeSeats().reduce((sum, seat) => sum + Number(seat.score || 0), 0);
-  const expectedScore = Number(state.startScore || 0) * state.tableSize;
+  const expectedScore = expectedScoreTotal();
   const pointSum = results.reduce((sum, result) => sum + result.point, 0);
   const scoreValid = scoreSum === expectedScore;
   const pointValid = Math.round(pointSum * 10) === 0;
@@ -459,7 +473,9 @@ function renderResults() {
     const breakdown = document.createElement("p");
     breakdown.textContent = `${formatScore(result.score)}${labels.points} / ${labels.base} ${formatPoint(
       result.basePoint
-    )} / ${labels.uma} ${formatPoint(result.uma)} / ${labels.oka} ${formatPoint(result.oka)}`;
+    )} / ${labels.uma} ${formatPoint(result.uma)} / ${labels.oka} ${formatPoint(
+      result.oka
+    )} / ${labels.deposit} ${formatPoint(result.deposit)}`;
     detail.append(name, breakdown);
 
     const output = document.createElement("output");
@@ -472,7 +488,7 @@ function renderResults() {
 
 function validateCurrentGame(results = calculateResults()) {
   const scoreSum = activeSeats().reduce((sum, seat) => sum + Number(seat.score || 0), 0);
-  const expectedScore = Number(state.startScore || 0) * state.tableSize;
+  const expectedScore = expectedScoreTotal();
   const pointSum = results.reduce((sum, result) => sum + result.point, 0);
 
   if (scoreSum !== expectedScore) {
@@ -510,6 +526,7 @@ function currentRecord(results) {
     settings: {
       startScore: state.startScore,
       returnScore: state.returnScore,
+      depositSticks: state.depositSticks,
       oka: automaticOka(),
       uma: [...state.uma[state.tableSize]],
     },
@@ -695,6 +712,7 @@ function editRecord(recordId) {
   state.calendarMonth = state.selectedDate.slice(0, 7);
   state.startScore = record.settings?.startScore ?? state.startScore;
   state.returnScore = record.settings?.returnScore ?? state.returnScore;
+  state.depositSticks = record.settings?.depositSticks ?? 0;
   state.uma[state.tableSize] = [...(record.settings?.uma || state.uma[state.tableSize])];
   state.rules = { ...clone(defaultState).rules, ...(record.rules || {}) };
   state.roster = record.roster?.length ? clone(record.roster) : state.roster;
@@ -800,6 +818,7 @@ function updateTableDefaults() {
     state.returnScore = 40000;
   }
 
+  state.depositSticks = 0;
   state.seats.forEach((seat, index) => {
     seat.score = state.startScore + (state.tableSize - index - 1) * 3000;
   });
@@ -871,6 +890,13 @@ startScoreInput.addEventListener("input", () => {
 
 returnScoreInput.addEventListener("input", () => {
   state.returnScore = Number(returnScoreInput.value);
+  renderSettings();
+  renderResults();
+  saveState();
+});
+
+depositSticksInput.addEventListener("input", () => {
+  state.depositSticks = Number(depositSticksInput.value || 0);
   renderSettings();
   renderResults();
   saveState();
