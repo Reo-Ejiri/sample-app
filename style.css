@@ -172,6 +172,7 @@ h2 {
 .settings,
 .day-panel,
 .rules-panel,
+.correction-panel,
 .tournament-panel,
 .entry-panel,
 .result-panel,
@@ -247,6 +248,7 @@ label {
 .tournament-panel,
 .day-panel,
 .rules-panel,
+.correction-panel,
 .entry-panel,
 .result-panel,
 .summary-panel,
@@ -256,6 +258,7 @@ label {
 
 .day-panel,
 .rules-panel,
+.correction-panel,
 .tournament-panel,
 .summary-panel,
 .history-panel {
@@ -555,6 +558,32 @@ textarea:focus {
   text-align: right;
 }
 
+#correction-total.invalid {
+  color: var(--red);
+  font-weight: 900;
+}
+
+.correction-list {
+  display: grid;
+  gap: 8px;
+}
+
+.correction-row {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e3dccb;
+  border-radius: 8px;
+  background: #fffdf6;
+  padding: 10px 12px;
+}
+
+.correction-row span {
+  color: var(--ink);
+  font-weight: 900;
+}
+
 .history-list {
   display: grid;
   gap: 8px;
@@ -618,6 +647,7 @@ textarea:focus {
   .seat-row,
   .result-card,
   .summary-row,
+  .correction-row,
   .settings,
   .day-grid,
   .rule-grid,

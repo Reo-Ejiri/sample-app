@@ -16,6 +16,8 @@ const labels = {
   top: "1\u7740",
   standardRules: "\u6a19\u6e96\u30eb\u30fc\u30eb",
   selectedDayTotal: "\u9078\u629e\u65e5\u306e\u5408\u8a08",
+  correctionTotal: "\u4fee\u6b63\u5408\u8a08",
+  correction: "\u4fee\u6b63",
 };
 
 const ruleNames = {
@@ -71,6 +73,7 @@ const defaultState = {
   },
   dateNotes: {},
   history: [],
+  corrections: [],
 };
 
 const storageKey = "mahjong-result-calculator-v3";
@@ -104,6 +107,10 @@ const nextMonthButton = document.querySelector("#next-month");
 const ruleChecks = [...document.querySelectorAll(".rule-check")];
 const ruleNoteInput = document.querySelector("#rule-note");
 const ruleSummary = document.querySelector("#rule-summary");
+const correctionList = document.querySelector("#correction-list");
+const correctionTotal = document.querySelector("#correction-total");
+const correctionNoteInput = document.querySelector("#correction-note");
+const saveCorrectionButton = document.querySelector("#save-correction");
 
 let state = loadState();
 
@@ -126,6 +133,7 @@ function loadState() {
       uma: { ...clone(defaultState).uma, ...parsed.uma },
       rules: { ...clone(defaultState).rules, ...parsed.rules },
       dateNotes: { ...clone(defaultState).dateNotes, ...parsed.dateNotes },
+      corrections: parsed.corrections || [],
     };
   } catch {
     return clone(defaultState);
@@ -266,6 +274,14 @@ function renderCalendar() {
     }
 
     monthRecords.set(record.date, (monthRecords.get(record.date) || 0) + 1);
+  });
+
+  state.corrections.forEach((correction) => {
+    if (!correction.date?.startsWith(state.calendarMonth)) {
+      return;
+    }
+
+    monthRecords.set(correction.date, (monthRecords.get(correction.date) || 0) + 1);
   });
 
   calendarTitle.textContent = `${year}/${String(month).padStart(2, "0")}`;
@@ -460,7 +476,95 @@ function buildSummary() {
       });
     });
 
+  state.corrections
+    .filter((correction) => correction.date === state.selectedDate)
+    .forEach((correction) => {
+      correction.items.forEach((item) => {
+        const key = item.id || item.name;
+        const current = summary.get(key) || {
+          name: item.name,
+          games: 0,
+          total: 0,
+          top: 0,
+        };
+        current.name = item.name;
+        current.total += Number(item.point || 0);
+        summary.set(key, current);
+      });
+    });
+
   return [...summary.values()].sort((a, b) => b.total - a.total);
+}
+
+function correctionPlayers() {
+  const players = new Map();
+
+  activeSeats().forEach((seat, index) => {
+    const id = state.format === "tournament" ? seat.playerId : seat.name || `seat-${index + 1}`;
+    players.set(id, { id, name: playerLabel(seat, index) });
+  });
+
+  state.history
+    .filter((record) => record.date === state.selectedDate)
+    .forEach((record) => {
+      record.results.forEach((result) => {
+        const id = result.id || result.name;
+        players.set(id, { id, name: result.name });
+      });
+    });
+
+  state.corrections
+    .filter((correction) => correction.date === state.selectedDate)
+    .forEach((correction) => {
+      correction.items.forEach((item) => {
+        const id = item.id || item.name;
+        players.set(id, { id, name: item.name });
+      });
+    });
+
+  return [...players.values()];
+}
+
+function renderCorrections() {
+  const players = correctionPlayers();
+  correctionList.innerHTML = "";
+
+  players.forEach((player) => {
+    const row = document.createElement("label");
+    row.className = "correction-row";
+    row.dataset.playerId = player.id;
+    row.dataset.playerName = player.name;
+
+    const name = document.createElement("span");
+    name.textContent = player.name;
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.step = "0.1";
+    input.value = "0";
+    input.addEventListener("input", updateCorrectionTotal);
+
+    row.append(name, input);
+    correctionList.append(row);
+  });
+
+  updateCorrectionTotal();
+}
+
+function currentCorrectionItems() {
+  return [...correctionList.querySelectorAll(".correction-row")]
+    .map((row) => ({
+      id: row.dataset.playerId,
+      name: row.dataset.playerName,
+      point: Number(row.querySelector("input").value || 0),
+    }))
+    .filter((item) => item.point !== 0);
+}
+
+function updateCorrectionTotal() {
+  const total = currentCorrectionItems().reduce((sum, item) => sum + item.point, 0);
+  correctionTotal.textContent = `${labels.correctionTotal} ${formatPoint(total)}`;
+  correctionTotal.classList.toggle("invalid", Math.round(total * 10) !== 0);
 }
 
 function renderSummary() {
@@ -505,7 +609,17 @@ function renderHistory() {
     historyList.append(item);
   });
 
-  emptyHistory.classList.toggle("hidden", state.history.length > 0);
+  state.corrections.forEach((correction) => {
+    const item = document.createElement("li");
+    const rows = correction.items
+      .map((entry) => `${entry.name} ${formatPoint(entry.point)}`)
+      .join(" / ");
+    const note = correction.note ? ` (${correction.note})` : "";
+    item.textContent = `${correction.date} ${labels.correction} ${correction.createdAt}${note} - ${rows}`;
+    historyList.append(item);
+  });
+
+  emptyHistory.classList.toggle("hidden", state.history.length + state.corrections.length > 0);
 }
 
 function renderAll() {
@@ -518,6 +632,7 @@ function renderAll() {
   renderUma();
   renderResults();
   renderSummary();
+  renderCorrections();
   renderHistory();
   saveState();
 }
@@ -647,6 +762,34 @@ saveButton.addEventListener("click", () => {
   state.history = state.history.slice(0, 100);
   renderCalendar();
   renderSummary();
+  renderCorrections();
+  renderHistory();
+  saveState();
+});
+
+saveCorrectionButton.addEventListener("click", () => {
+  const items = currentCorrectionItems();
+  const total = items.reduce((sum, item) => sum + item.point, 0);
+
+  if (!items.length) {
+    alert("\u4fee\u6b63\u30dd\u30a4\u30f3\u30c8\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002");
+    return;
+  }
+
+  if (Math.round(total * 10) !== 0) {
+    alert("\u4fee\u6b63\u5408\u8a08\u304c0.0\u306b\u306a\u308b\u3088\u3046\u306b\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002");
+    return;
+  }
+
+  state.corrections.unshift({
+    date: state.selectedDate,
+    createdAt: new Date().toLocaleString("ja-JP"),
+    note: correctionNoteInput.value.trim(),
+    items,
+  });
+  correctionNoteInput.value = "";
+  renderSummary();
+  renderCorrections();
   renderHistory();
   saveState();
 });
@@ -657,8 +800,10 @@ clearHistoryButton.addEventListener("click", () => {
   }
 
   state.history = [];
+  state.corrections = [];
   renderCalendar();
   renderSummary();
+  renderCorrections();
   renderHistory();
   saveState();
 });
