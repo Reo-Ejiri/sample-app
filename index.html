@@ -17,34 +17,56 @@
           <button id="reset-button" class="ghost-button" type="button">初期化</button>
         </header>
 
-        <section class="settings" aria-label="計算設定">
-          <div class="mode-switch" role="group" aria-label="人数">
-            <button class="mode-button active" type="button" data-mode="4">4麻</button>
-            <button class="mode-button" type="button" data-mode="3">3麻</button>
+        <section class="settings" aria-label="基本設定">
+          <div class="setting-group">
+            <span class="setting-label">形式</span>
+            <div class="button-group" role="group" aria-label="形式">
+              <button class="format-button active" type="button" data-format="normal">通常</button>
+              <button class="format-button" type="button" data-format="tournament">大会</button>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <span class="setting-label">卓人数</span>
+            <div class="button-group" role="group" aria-label="卓人数">
+              <button class="table-button active" type="button" data-table-size="4">4麻</button>
+              <button class="table-button" type="button" data-table-size="3">3麻</button>
+            </div>
           </div>
 
           <label>
             配給原点
-            <input id="start-score" type="number" step="1000" min="0">
+            <input id="start-score" type="number" min="0" step="1000">
           </label>
           <label>
             返し点
-            <input id="return-score" type="number" step="1000" min="0">
+            <input id="return-score" type="number" min="0" step="1000">
           </label>
           <label>
-            オカ
-            <input id="oka" type="number" step="1">
+            自動オカ
+            <output id="oka-output">+20.0</output>
           </label>
         </section>
 
+        <section id="tournament-panel" class="tournament-panel hidden" aria-label="大会参加者">
+          <div class="section-title">
+            <h2>大会参加者</h2>
+            <label class="compact-label">
+              人数
+              <input id="participant-count" type="number" min="5" max="32" step="1">
+            </label>
+          </div>
+          <div id="roster-list" class="roster-list"></div>
+        </section>
+
         <section class="main-grid">
-          <section class="entry-panel" aria-label="結果入力">
+          <section class="entry-panel" aria-label="半荘結果入力">
             <div class="section-title">
-              <h2>対局結果</h2>
-              <span id="score-total">合計 100000</span>
+              <h2>半荘結果</h2>
+              <span id="score-total">入力合計 100000 / 基準 100000</span>
             </div>
 
-            <div id="player-inputs" class="player-inputs"></div>
+            <div id="seat-inputs" class="seat-inputs"></div>
 
             <div class="section-title uma-title">
               <h2>順位ウマ</h2>
@@ -52,16 +74,25 @@
             </div>
             <div id="uma-inputs" class="uma-inputs"></div>
 
-            <button id="save-result" class="primary-button" type="button">この結果を記録</button>
+            <button id="save-result" class="primary-button" type="button">この半荘を記録</button>
           </section>
 
           <section class="result-panel" aria-label="計算結果">
             <div class="section-title">
-              <h2>ポイント</h2>
+              <h2>今回のポイント</h2>
               <span id="point-total">合計 0.0</span>
             </div>
             <div id="result-list" class="result-list"></div>
           </section>
+        </section>
+
+        <section class="summary-panel" aria-label="本日の成績">
+          <div class="section-title">
+            <h2>本日の合計</h2>
+            <span id="game-count">0半荘</span>
+          </div>
+          <div id="summary-list" class="summary-list"></div>
+          <p id="empty-summary" class="empty-state">半荘を記録すると合計ポイントが出ます。</p>
         </section>
 
         <section class="history-panel" aria-label="記録">
@@ -70,7 +101,7 @@
             <button id="clear-history" class="ghost-button small-button" type="button">記録を削除</button>
           </div>
           <ol id="history-list" class="history-list"></ol>
-          <p id="empty-history" class="empty-history">まだ記録がありません。</p>
+          <p id="empty-history" class="empty-state">まだ記録がありません。</p>
         </section>
       </section>
     </main>

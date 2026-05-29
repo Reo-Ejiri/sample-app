@@ -15,7 +15,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -28,7 +29,9 @@ button {
   padding: 10px 14px;
 }
 
-input {
+input,
+select,
+output {
   width: 100%;
   border: 1px solid #bdc8bd;
   border-radius: 6px;
@@ -38,9 +41,16 @@ input {
   padding: 10px 11px;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: #176a43;
   box-shadow: 0 0 0 3px rgba(23, 106, 67, 0.16);
+}
+
+output {
+  background: #f4f7f2;
+  color: #176a43;
+  font-weight: 900;
 }
 
 .app {
@@ -49,7 +59,7 @@ input:focus {
 }
 
 .workspace {
-  width: min(100%, 1080px);
+  width: min(100%, 1120px);
   margin: 0 auto;
 }
 
@@ -90,8 +100,10 @@ h2 {
 }
 
 .settings,
+.tournament-panel,
 .entry-panel,
 .result-panel,
+.summary-panel,
 .history-panel {
   background: #ffffff;
   border: 1px solid #d5ded2;
@@ -101,13 +113,14 @@ h2 {
 
 .settings {
   display: grid;
-  grid-template-columns: auto repeat(3, minmax(120px, 1fr));
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
   align-items: end;
   gap: 12px;
   margin-bottom: 14px;
   padding: 16px;
 }
 
+.setting-group,
 label {
   color: #47524a;
   display: grid;
@@ -116,40 +129,69 @@ label {
   font-weight: 800;
 }
 
-.mode-switch {
+.setting-label {
+  display: block;
+}
+
+.button-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 6px;
-  min-width: 160px;
 }
 
-.mode-button,
+.format-button,
+.table-button,
 .ghost-button {
   background: #edf3eb;
   color: #22392b;
 }
 
-.mode-button:hover,
+.format-button:hover,
+.table-button:hover,
 .ghost-button:hover {
   background: #dae7d7;
 }
 
-.mode-button.active {
+.format-button.active,
+.table-button.active {
   background: #176a43;
   color: #ffffff;
 }
 
-.main-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
-  gap: 14px;
+.tournament-panel,
+.entry-panel,
+.result-panel,
+.summary-panel,
+.history-panel {
+  padding: 18px;
+}
+
+.tournament-panel,
+.summary-panel,
+.history-panel {
   margin-bottom: 14px;
 }
 
-.entry-panel,
-.result-panel,
-.history-panel {
-  padding: 18px;
+.hidden {
+  display: none;
+}
+
+.compact-label {
+  grid-template-columns: auto 96px;
+  align-items: center;
+}
+
+.roster-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.9fr);
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .section-title {
@@ -161,19 +203,26 @@ label {
   font-size: 0.9rem;
 }
 
-.player-inputs {
+.seat-inputs {
   display: grid;
   gap: 10px;
 }
 
-.player-row {
+.seat-row {
   display: grid;
-  grid-template-columns: 1fr 160px;
+  grid-template-columns: 70px 1fr 160px;
+  align-items: end;
   gap: 10px;
   padding: 12px;
   border: 1px solid #e0e8dd;
   border-radius: 8px;
   background: #f8faf7;
+}
+
+.seat-label {
+  color: #176a43;
+  font-weight: 900;
+  padding-bottom: 11px;
 }
 
 .uma-title {
@@ -236,9 +285,46 @@ label {
 }
 
 .result-card output {
+  border: 0;
   color: #176a43;
   font-size: 1.35rem;
   font-weight: 900;
+  padding: 0;
+  text-align: right;
+}
+
+.summary-list {
+  display: grid;
+  gap: 8px;
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #dfe8dc;
+  border-radius: 8px;
+  background: #f8faf7;
+  padding: 10px 12px;
+}
+
+.summary-row span {
+  color: #6d4d12;
+  font-weight: 900;
+}
+
+.summary-row small {
+  color: #66726a;
+}
+
+.summary-row output {
+  border: 0;
+  color: #176a43;
+  font-size: 1.1rem;
+  font-weight: 900;
+  padding: 0;
+  text-align: right;
 }
 
 .history-list {
@@ -259,12 +345,12 @@ label {
   padding: 10px;
 }
 
-.empty-history {
+.empty-state {
   color: #718078;
   text-align: center;
 }
 
-.empty-history.hidden {
+.empty-state.hidden {
   display: none;
 }
 
@@ -273,26 +359,31 @@ label {
   padding: 7px 10px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 900px) {
   .app {
     padding: 14px;
   }
 
   .settings,
+  .main-grid,
+  .roster-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .main-grid {
     grid-template-columns: 1fr;
   }
-
-  .uma-inputs {
-    grid-template-columns: 1fr 1fr;
-  }
 }
 
-@media (max-width: 520px) {
+@media (max-width: 600px) {
   .topbar,
   .section-title,
-  .player-row,
-  .result-card {
+  .seat-row,
+  .result-card,
+  .summary-row,
+  .settings,
+  .roster-list,
+  .uma-inputs {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
@@ -302,8 +393,8 @@ label {
     flex-direction: column;
   }
 
-  .mode-switch,
-  .uma-inputs {
-    grid-template-columns: 1fr;
+  .result-card output,
+  .summary-row output {
+    text-align: left;
   }
 }
