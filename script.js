@@ -1,3 +1,21 @@
+const labels = {
+  player: "\u30d7\u30ec\u30a4\u30e4\u30fc",
+  participant: "\u53c2\u52a0\u8005",
+  normalName: "\u540d\u524d",
+  finalScore: "\u6700\u7d42\u6301\u3061\u70b9",
+  seat: "\u4eba\u76ee",
+  rank: "\u4f4d",
+  points: "\u70b9",
+  base: "\u7d20\u70b9",
+  uma: "\u30a6\u30de",
+  oka: "\u30aa\u30ab",
+  total: "\u5408\u8a08",
+  inputTotal: "\u5165\u529b\u5408\u8a08",
+  expected: "\u57fa\u6e96",
+  hanchan: "\u534a\u8358",
+  top: "1\u7740",
+};
+
 const defaultState = {
   format: "normal",
   tableSize: 4,
@@ -5,14 +23,14 @@ const defaultState = {
   startScore: 25000,
   returnScore: 30000,
   seats: [
-    { playerId: "p1", name: "プレイヤー1", score: 35000 },
-    { playerId: "p2", name: "プレイヤー2", score: 28000 },
-    { playerId: "p3", name: "プレイヤー3", score: 21000 },
-    { playerId: "p4", name: "プレイヤー4", score: 16000 },
+    { playerId: "p1", name: `${labels.player}1`, score: 35000 },
+    { playerId: "p2", name: `${labels.player}2`, score: 28000 },
+    { playerId: "p3", name: `${labels.player}3`, score: 21000 },
+    { playerId: "p4", name: `${labels.player}4`, score: 16000 },
   ],
   roster: Array.from({ length: 8 }, (_, index) => ({
     id: `p${index + 1}`,
-    name: `参加者${index + 1}`,
+    name: `${labels.participant}${index + 1}`,
   })),
   uma: {
     4: [20, 10, -10, -20],
@@ -21,7 +39,7 @@ const defaultState = {
   history: [],
 };
 
-const storageKey = "mahjong-result-calculator-v2";
+const storageKey = "mahjong-result-calculator-v3";
 const formatButtons = [...document.querySelectorAll(".format-button")];
 const tableButtons = [...document.querySelectorAll(".table-button")];
 const startScoreInput = document.querySelector("#start-score");
@@ -78,14 +96,14 @@ function ensureStateShape() {
     const number = state.seats.length + 1;
     state.seats.push({
       playerId: `p${number}`,
-      name: `プレイヤー${number}`,
+      name: `${labels.player}${number}`,
       score: state.startScore,
     });
   }
 
   while (state.roster.length < state.participantCount) {
     const number = state.roster.length + 1;
-    state.roster.push({ id: `p${number}`, name: `参加者${number}` });
+    state.roster.push({ id: `p${number}`, name: `${labels.participant}${number}` });
   }
 
   state.roster = state.roster.slice(0, state.participantCount);
@@ -111,10 +129,10 @@ function formatPoint(value) {
 function playerLabel(seat, index) {
   if (state.format === "tournament") {
     const player = state.roster.find((item) => item.id === seat.playerId);
-    return player?.name || `参加者${index + 1}`;
+    return player?.name || `${labels.participant}${index + 1}`;
   }
 
-  return seat.name || `プレイヤー${index + 1}`;
+  return seat.name || `${labels.player}${index + 1}`;
 }
 
 function calculateResults() {
@@ -174,7 +192,7 @@ function renderRoster() {
     input.type = "text";
     input.maxLength = 18;
     input.value = player.name;
-    label.append(`参加者${index + 1}`, input);
+    label.append(`${labels.participant}${index + 1}`, input);
 
     input.addEventListener("input", () => {
       state.roster[index].name = input.value;
@@ -197,10 +215,10 @@ function renderSeats() {
 
     const seatName = document.createElement("span");
     seatName.className = "seat-label";
-    seatName.textContent = `${index + 1}人目`;
+    seatName.textContent = `${index + 1}${labels.seat}`;
 
     const playerField = document.createElement("label");
-    playerField.append(state.format === "tournament" ? "参加者" : "名前");
+    playerField.append(state.format === "tournament" ? labels.participant : labels.normalName);
 
     if (state.format === "tournament") {
       const select = document.createElement("select");
@@ -232,7 +250,7 @@ function renderSeats() {
     scoreInput.type = "number";
     scoreInput.step = 100;
     scoreInput.value = seat.score;
-    scoreField.append("最終持ち点", scoreInput);
+    scoreField.append(labels.finalScore, scoreInput);
     scoreInput.addEventListener("input", () => {
       state.seats[index].score = Number(scoreInput.value);
       renderResults();
@@ -253,7 +271,7 @@ function renderUma() {
     input.type = "number";
     input.step = 1;
     input.value = value;
-    label.append(`${index + 1}位`, input);
+    label.append(`${index + 1}${labels.rank}`, input);
 
     input.addEventListener("input", () => {
       state.uma[state.tableSize][index] = Number(input.value);
@@ -271,8 +289,8 @@ function renderResults() {
   const expectedScore = Number(state.startScore || 0) * state.tableSize;
   const pointSum = results.reduce((sum, result) => sum + result.point, 0);
 
-  scoreTotal.textContent = `入力合計 ${formatScore(scoreSum)} / 基準 ${formatScore(expectedScore)}`;
-  pointTotal.textContent = `合計 ${formatPoint(pointSum)}`;
+  scoreTotal.textContent = `${labels.inputTotal} ${formatScore(scoreSum)} / ${labels.expected} ${formatScore(expectedScore)}`;
+  pointTotal.textContent = `${labels.total} ${formatPoint(pointSum)}`;
   resultList.innerHTML = "";
 
   results.forEach((result) => {
@@ -281,15 +299,15 @@ function renderResults() {
 
     const rank = document.createElement("div");
     rank.className = "rank";
-    rank.textContent = `${result.rank}位`;
+    rank.textContent = `${result.rank}${labels.rank}`;
 
     const detail = document.createElement("div");
     const name = document.createElement("strong");
     name.textContent = result.name;
     const breakdown = document.createElement("p");
-    breakdown.textContent = `${formatScore(result.score)}点 / 素点 ${formatPoint(
+    breakdown.textContent = `${formatScore(result.score)}${labels.points} / ${labels.base} ${formatPoint(
       result.basePoint
-    )} / ウマ ${formatPoint(result.uma)} / オカ ${formatPoint(result.oka)}`;
+    )} / ${labels.uma} ${formatPoint(result.uma)} / ${labels.oka} ${formatPoint(result.oka)}`;
     detail.append(name, breakdown);
 
     const output = document.createElement("output");
@@ -326,18 +344,25 @@ function buildSummary() {
 function renderSummary() {
   const summary = buildSummary();
   summaryList.innerHTML = "";
-  gameCount.textContent = `${state.history.length}半荘`;
+  gameCount.textContent = `${state.history.length}${labels.hanchan}`;
 
   summary.forEach((player, index) => {
     const row = document.createElement("div");
     row.className = "summary-row";
-    row.innerHTML = `
-      <span>${index + 1}位</span>
-      <strong></strong>
-      <small>${player.games}半荘 / 1着 ${player.top}回</small>
-      <output>${formatPoint(player.total)}</output>
-    `;
-    row.querySelector("strong").textContent = player.name;
+
+    const rank = document.createElement("span");
+    rank.textContent = `${index + 1}${labels.rank}`;
+
+    const name = document.createElement("strong");
+    name.textContent = player.name;
+
+    const meta = document.createElement("small");
+    meta.textContent = `${player.games}${labels.hanchan} / ${labels.top} ${player.top}\u56de`;
+
+    const output = document.createElement("output");
+    output.textContent = formatPoint(player.total);
+
+    row.append(rank, name, meta, output);
     summaryList.append(row);
   });
 
@@ -350,9 +375,9 @@ function renderHistory() {
   state.history.forEach((record) => {
     const item = document.createElement("li");
     const rows = record.results
-      .map((result) => `${result.rank}位 ${result.name} ${formatPoint(result.point)}`)
+      .map((result) => `${result.rank}${labels.rank} ${result.name} ${formatPoint(result.point)}`)
       .join(" / ");
-    item.textContent = `${record.tableSize}麻 ${record.createdAt} - ${rows}`;
+    item.textContent = `${record.tableSize}\u9ebb ${record.createdAt} - ${rows}`;
     historyList.append(item);
   });
 
@@ -429,7 +454,7 @@ saveButton.addEventListener("click", () => {
   const duplicated = state.format === "tournament" && new Set(selectedIds).size !== selectedIds.length;
 
   if (duplicated) {
-    alert("大会モードでは同じ参加者を同じ半荘に重複して入れられません。");
+    alert("\u5927\u4f1a\u30e2\u30fc\u30c9\u3067\u306f\u540c\u3058\u53c2\u52a0\u8005\u3092\u540c\u3058\u534a\u8358\u306b\u91cd\u8907\u3057\u3066\u5165\u308c\u3089\u308c\u307e\u305b\u3093\u3002");
     return;
   }
 
@@ -452,7 +477,7 @@ saveButton.addEventListener("click", () => {
 });
 
 clearHistoryButton.addEventListener("click", () => {
-  if (!confirm("記録をすべて削除しますか？")) {
+  if (!confirm("\u8a18\u9332\u3092\u3059\u3079\u3066\u524a\u9664\u3057\u307e\u3059\u304b\uff1f")) {
     return;
   }
 
@@ -463,7 +488,7 @@ clearHistoryButton.addEventListener("click", () => {
 });
 
 resetButton.addEventListener("click", () => {
-  if (!confirm("設定と入力内容を初期化しますか？")) {
+  if (!confirm("\u8a2d\u5b9a\u3068\u5165\u529b\u5185\u5bb9\u3092\u521d\u671f\u5316\u3057\u307e\u3059\u304b\uff1f")) {
     return;
   }
 
