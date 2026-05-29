@@ -1,20 +1,17 @@
-# Mini Task App
+# 麻雀点数管理アプリ
 
-HTML、CSS、JavaScriptだけで作った簡単なTODOアプリです。
+HTML、CSS、JavaScriptだけで作った麻雀の点数管理アプリです。
+
+## 機能
+
+- 4人分の名前と持ち点を管理
+- ロン、ツモの点数反映
+- 本場、供託、リーチ棒の管理
+- 履歴表示と1手戻し
+- ブラウザの `localStorage` に自動保存
 
 ## 使い方
 
-`index.html` をブラウザで開くと動きます。入力したタスクはブラウザの `localStorage` に保存されます。
+`index.html` をブラウザで開くと動きます。
 
-## GitHubに連携する流れ
-
-```powershell
-git init
-git add .
-git commit -m "Create mini task app"
-git branch -M main
-git remote add origin https://github.com/USER_NAME/REPOSITORY_NAME.git
-git push -u origin main
-```
-
-`USER_NAME` と `REPOSITORY_NAME` は自分のGitHubアカウントとリポジトリ名に置き換えてください。
+GitHub Pagesで公開する場合は、リポジトリの `Settings` → `Pages` から `main` ブランチを選択してください。

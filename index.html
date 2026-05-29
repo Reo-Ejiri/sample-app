@@ -3,36 +3,97 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mini Task App</title>
+    <title>麻雀点数管理</title>
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <main class="app">
-      <section class="panel">
-        <div class="heading">
-          <p class="eyebrow">Simple Web App</p>
-          <h1>Mini Task</h1>
-        </div>
+      <section class="scoreboard" aria-labelledby="app-title">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Mahjong Score Keeper</p>
+            <h1 id="app-title">麻雀点数管理</h1>
+          </div>
+          <button id="reset-game" class="secondary-button" type="button">リセット</button>
+        </header>
 
-        <form id="task-form" class="task-form">
-          <input
-            id="task-input"
-            type="text"
-            maxlength="80"
-            placeholder="やることを入力"
-            autocomplete="off"
-            required
-          >
-          <button type="submit">追加</button>
-        </form>
+        <section class="players" aria-label="プレイヤー点数">
+          <article class="player-card east">
+            <label for="player-0">東</label>
+            <input id="player-0" class="player-name" type="text" maxlength="12">
+            <strong id="score-0">25000</strong>
+          </article>
+          <article class="player-card south">
+            <label for="player-1">南</label>
+            <input id="player-1" class="player-name" type="text" maxlength="12">
+            <strong id="score-1">25000</strong>
+          </article>
+          <article class="player-card west">
+            <label for="player-2">西</label>
+            <input id="player-2" class="player-name" type="text" maxlength="12">
+            <strong id="score-2">25000</strong>
+          </article>
+          <article class="player-card north">
+            <label for="player-3">北</label>
+            <input id="player-3" class="player-name" type="text" maxlength="12">
+            <strong id="score-3">25000</strong>
+          </article>
+        </section>
 
-        <div class="toolbar">
-          <span id="task-count">0件</span>
-          <button id="clear-done" type="button">完了を削除</button>
-        </div>
+        <section class="controls" aria-label="点数入力">
+          <div class="round-info">
+            <label>
+              本場
+              <input id="honba" type="number" min="0" max="99" step="1">
+            </label>
+            <label>
+              供託
+              <input id="riichi-sticks" type="number" min="0" max="99" step="1">
+            </label>
+          </div>
 
-        <ul id="task-list" class="task-list" aria-label="タスクリスト"></ul>
-        <p id="empty-state" class="empty-state">まだタスクがありません。</p>
+          <form id="score-form" class="score-form">
+            <label>
+              あがり
+              <select id="winner"></select>
+            </label>
+
+            <label>
+              支払い
+              <select id="payer"></select>
+            </label>
+
+            <label>
+              点数
+              <input id="points" type="number" min="100" max="64000" step="100" value="8000" required>
+            </label>
+
+            <button type="submit">反映</button>
+          </form>
+
+          <div class="quick-points" aria-label="よく使う点数">
+            <button type="button" data-points="1000">1000</button>
+            <button type="button" data-points="2000">2000</button>
+            <button type="button" data-points="3900">3900</button>
+            <button type="button" data-points="5200">5200</button>
+            <button type="button" data-points="8000">8000</button>
+            <button type="button" data-points="12000">12000</button>
+          </div>
+
+          <div class="actions">
+            <button id="riichi-button" class="secondary-button" type="button">リーチ棒を出す</button>
+            <button id="undo-button" class="secondary-button" type="button">1つ戻す</button>
+          </div>
+        </section>
+
+        <section class="history-panel" aria-label="履歴">
+          <div class="history-title">
+            <h2>履歴</h2>
+            <span id="total-score">合計 100000</span>
+          </div>
+          <ol id="history" class="history"></ol>
+          <p id="empty-history" class="empty-history">まだ記録がありません。</p>
+        </section>
       </section>
     </main>
 
