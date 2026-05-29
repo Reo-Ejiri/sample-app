@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Mini Task App</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel">
+        <div class="heading">
+          <p class="eyebrow">Simple Web App</p>
+          <h1>Mini Task</h1>
+        </div>
+
+        <form id="task-form" class="task-form">
+          <input
+            id="task-input"
+            type="text"
+            maxlength="80"
+            placeholder="やることを入力"
+            autocomplete="off"
+            required
+          >
+          <button type="submit">追加</button>
+        </form>
+
+        <div class="toolbar">
+          <span id="task-count">0件</span>
+          <button id="clear-done" type="button">完了を削除</button>
+        </div>
+
+        <ul id="task-list" class="task-list" aria-label="タスクリスト"></ul>
+        <p id="empty-state" class="empty-state">まだタスクがありません。</p>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
