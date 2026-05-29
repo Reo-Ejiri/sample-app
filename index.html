@@ -58,6 +58,76 @@
           </label>
         </section>
 
+        <section class="day-panel" aria-label="Date memo">
+          <div class="section-title">
+            <h2>&#26085;&#20184;&#12539;&#12513;&#12514;</h2>
+            <label class="compact-label">
+              &#35352;&#37682;&#26085;
+              <input id="record-date" type="date">
+            </label>
+          </div>
+          <div class="day-grid">
+            <div class="calendar-card">
+              <div class="calendar-head">
+                <button id="prev-month" class="ghost-button small-button" type="button">&#21069;&#26376;</button>
+                <strong id="calendar-title">2026/05</strong>
+                <button id="next-month" class="ghost-button small-button" type="button">&#27425;&#26376;</button>
+              </div>
+              <div class="calendar-week">
+                <span>Sun</span>
+                <span>Mon</span>
+                <span>Tue</span>
+                <span>Wed</span>
+                <span>Thu</span>
+                <span>Fri</span>
+                <span>Sat</span>
+              </div>
+              <div id="calendar-grid" class="calendar-grid"></div>
+            </div>
+            <label class="memo-field">
+              &#12381;&#12398;&#26085;&#12398;&#12513;&#12514;
+              <textarea id="day-note" rows="5" placeholder="&#20363;: &#26032;&#23487;&#12391;4&#21322;&#33624;&#12289;&#20840;&#36196;&#12354;&#12426;"></textarea>
+            </label>
+          </div>
+        </section>
+
+        <section class="rules-panel" aria-label="Rule settings">
+          <div class="section-title">
+            <h2>&#12523;&#12540;&#12523;&#35373;&#23450;</h2>
+            <span id="rule-summary">&#27161;&#28310;&#12523;&#12540;&#12523;</span>
+          </div>
+          <div class="rule-grid">
+            <label class="check-card">
+              <input class="rule-check" type="checkbox" data-rule="allRed">
+              <span>&#20840;&#36196;</span>
+            </label>
+            <label class="check-card">
+              <input class="rule-check" type="checkbox" data-rule="chips">
+              <span>&#12481;&#12483;&#12503;&#12354;&#12426;</span>
+            </label>
+            <label class="check-card">
+              <input class="rule-check" type="checkbox" data-rule="abortiveDraw">
+              <span>&#36884;&#20013;&#27969;&#23616;&#12354;&#12426;</span>
+            </label>
+            <label class="check-card">
+              <input class="rule-check" type="checkbox" data-rule="pao">
+              <span>&#12497;&#12458;&#12354;&#12426;</span>
+            </label>
+            <label class="check-card">
+              <input class="rule-check" type="checkbox" data-rule="doubleRon">
+              <span>&#12480;&#12502;&#12525;&#12531;&#12354;&#12426;</span>
+            </label>
+            <label class="check-card">
+              <input class="rule-check" type="checkbox" data-rule="openTanyao">
+              <span>&#39135;&#12356;&#12479;&#12531;&#12354;&#12426;</span>
+            </label>
+          </div>
+          <label class="rule-note">
+            &#12523;&#12540;&#12523;&#35036;&#36275;
+            <input id="rule-note" type="text" maxlength="80" placeholder="&#20363;: &#36196;5&#21508;1&#26522;&#12289;&#12481;&#12483;&#12503;1&#26522;5pt">
+          </label>
+        </section>
+
         <section id="tournament-panel" class="tournament-panel hidden" aria-label="Tournament players">
           <div class="section-title">
             <h2>&#22823;&#20250;&#21442;&#21152;&#32773;</h2>

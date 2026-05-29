@@ -14,11 +14,35 @@ const labels = {
   expected: "\u57fa\u6e96",
   hanchan: "\u534a\u8358",
   top: "1\u7740",
+  standardRules: "\u6a19\u6e96\u30eb\u30fc\u30eb",
+  selectedDayTotal: "\u9078\u629e\u65e5\u306e\u5408\u8a08",
 };
+
+const ruleNames = {
+  allRed: "\u5168\u8d64",
+  chips: "\u30c1\u30c3\u30d7\u3042\u308a",
+  abortiveDraw: "\u9014\u4e2d\u6d41\u5c40\u3042\u308a",
+  pao: "\u30d1\u30aa\u3042\u308a",
+  doubleRon: "\u30c0\u30d6\u30ed\u30f3\u3042\u308a",
+  openTanyao: "\u98df\u3044\u30bf\u30f3\u3042\u308a",
+};
+
+function todayKey() {
+  const date = new Date();
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`;
+}
+
+function monthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
 
 const defaultState = {
   format: "normal",
   tableSize: 4,
+  selectedDate: todayKey(),
+  calendarMonth: todayKey().slice(0, 7),
   participantCount: 8,
   startScore: 25000,
   returnScore: 30000,
@@ -36,6 +60,16 @@ const defaultState = {
     4: [20, 10, -10, -20],
     3: [20, 0, -20],
   },
+  rules: {
+    allRed: false,
+    chips: false,
+    abortiveDraw: true,
+    pao: true,
+    doubleRon: true,
+    openTanyao: true,
+    note: "",
+  },
+  dateNotes: {},
   history: [],
 };
 
@@ -61,6 +95,15 @@ const historyList = document.querySelector("#history-list");
 const emptyHistory = document.querySelector("#empty-history");
 const clearHistoryButton = document.querySelector("#clear-history");
 const resetButton = document.querySelector("#reset-button");
+const recordDateInput = document.querySelector("#record-date");
+const dayNoteInput = document.querySelector("#day-note");
+const calendarTitle = document.querySelector("#calendar-title");
+const calendarGrid = document.querySelector("#calendar-grid");
+const prevMonthButton = document.querySelector("#prev-month");
+const nextMonthButton = document.querySelector("#next-month");
+const ruleChecks = [...document.querySelectorAll(".rule-check")];
+const ruleNoteInput = document.querySelector("#rule-note");
+const ruleSummary = document.querySelector("#rule-summary");
 
 let state = loadState();
 
@@ -81,6 +124,8 @@ function loadState() {
       ...clone(defaultState),
       ...parsed,
       uma: { ...clone(defaultState).uma, ...parsed.uma },
+      rules: { ...clone(defaultState).rules, ...parsed.rules },
+      dateNotes: { ...clone(defaultState).dateNotes, ...parsed.dateNotes },
     };
   } catch {
     return clone(defaultState);
@@ -107,6 +152,14 @@ function ensureStateShape() {
   }
 
   state.roster = state.roster.slice(0, state.participantCount);
+
+  if (!state.selectedDate) {
+    state.selectedDate = todayKey();
+  }
+
+  if (!state.calendarMonth) {
+    state.calendarMonth = state.selectedDate.slice(0, 7);
+  }
 }
 
 function activeSeats() {
@@ -181,6 +234,73 @@ function renderSettings() {
   participantCountInput.value = state.participantCount;
   okaOutput.textContent = formatPoint(automaticOka());
   tournamentPanel.classList.toggle("hidden", state.format !== "tournament");
+}
+
+function activeRuleNames(rules = state.rules) {
+  const names = Object.entries(ruleNames)
+    .filter(([key]) => rules[key])
+    .map(([, name]) => name);
+
+  if (rules.note) {
+    names.push(rules.note);
+  }
+
+  return names;
+}
+
+function renderDayTools() {
+  recordDateInput.value = state.selectedDate;
+  dayNoteInput.value = state.dateNotes[state.selectedDate] || "";
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const [year, month] = state.calendarMonth.split("-").map(Number);
+  const firstDay = new Date(year, month - 1, 1);
+  const lastDay = new Date(year, month, 0);
+  const monthRecords = new Map();
+
+  state.history.forEach((record) => {
+    if (!record.date?.startsWith(state.calendarMonth)) {
+      return;
+    }
+
+    monthRecords.set(record.date, (monthRecords.get(record.date) || 0) + 1);
+  });
+
+  calendarTitle.textContent = `${year}/${String(month).padStart(2, "0")}`;
+  calendarGrid.innerHTML = "";
+
+  for (let index = 0; index < firstDay.getDay(); index += 1) {
+    calendarGrid.append(document.createElement("span"));
+  }
+
+  for (let day = 1; day <= lastDay.getDate(); day += 1) {
+    const date = `${state.calendarMonth}-${String(day).padStart(2, "0")}`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    button.textContent = day;
+    button.classList.toggle("active", date === state.selectedDate);
+    button.classList.toggle("has-record", monthRecords.has(date) || Boolean(state.dateNotes[date]));
+    button.title = monthRecords.has(date) ? `${monthRecords.get(date)}${labels.hanchan}` : "";
+    button.addEventListener("click", () => {
+      state.selectedDate = date;
+      state.calendarMonth = date.slice(0, 7);
+      renderAll();
+    });
+    calendarGrid.append(button);
+  }
+}
+
+function renderRules() {
+  ruleChecks.forEach((input) => {
+    input.checked = Boolean(state.rules[input.dataset.rule]);
+  });
+
+  ruleNoteInput.value = state.rules.note || "";
+  const names = activeRuleNames();
+  ruleSummary.textContent = names.length ? names.join(" / ") : labels.standardRules;
 }
 
 function renderRoster() {
@@ -321,22 +441,24 @@ function renderResults() {
 function buildSummary() {
   const summary = new Map();
 
-  state.history.forEach((record) => {
-    record.results.forEach((result) => {
-      const key = result.id || result.name;
-      const current = summary.get(key) || {
-        name: result.name,
-        games: 0,
-        total: 0,
-        top: 0,
-      };
-      current.name = result.name;
-      current.games += 1;
-      current.total += Number(result.point || 0);
-      current.top += result.rank === 1 ? 1 : 0;
-      summary.set(key, current);
+  state.history
+    .filter((record) => record.date === state.selectedDate)
+    .forEach((record) => {
+      record.results.forEach((result) => {
+        const key = result.id || result.name;
+        const current = summary.get(key) || {
+          name: result.name,
+          games: 0,
+          total: 0,
+          top: 0,
+        };
+        current.name = result.name;
+        current.games += 1;
+        current.total += Number(result.point || 0);
+        current.top += result.rank === 1 ? 1 : 0;
+        summary.set(key, current);
+      });
     });
-  });
 
   return [...summary.values()].sort((a, b) => b.total - a.total);
 }
@@ -344,7 +466,8 @@ function buildSummary() {
 function renderSummary() {
   const summary = buildSummary();
   summaryList.innerHTML = "";
-  gameCount.textContent = `${state.history.length}${labels.hanchan}`;
+  const selectedGames = state.history.filter((record) => record.date === state.selectedDate).length;
+  gameCount.textContent = `${labels.selectedDayTotal} ${selectedGames}${labels.hanchan}`;
 
   summary.forEach((player, index) => {
     const row = document.createElement("div");
@@ -377,7 +500,8 @@ function renderHistory() {
     const rows = record.results
       .map((result) => `${result.rank}${labels.rank} ${result.name} ${formatPoint(result.point)}`)
       .join(" / ");
-    item.textContent = `${record.tableSize}\u9ebb ${record.createdAt} - ${rows}`;
+    const rules = record.rules?.names?.length ? ` [${record.rules.names.join(" / ")}]` : "";
+    item.textContent = `${record.date} ${record.tableSize}\u9ebb ${record.createdAt}${rules} - ${rows}`;
     historyList.append(item);
   });
 
@@ -387,6 +511,8 @@ function renderHistory() {
 function renderAll() {
   ensureStateShape();
   renderSettings();
+  renderDayTools();
+  renderRules();
   renderRoster();
   renderSeats();
   renderUma();
@@ -415,6 +541,48 @@ formatButtons.forEach((button) => {
     state.format = button.dataset.format;
     renderAll();
   });
+});
+
+recordDateInput.addEventListener("input", () => {
+  state.selectedDate = recordDateInput.value || todayKey();
+  state.calendarMonth = state.selectedDate.slice(0, 7);
+  renderAll();
+});
+
+dayNoteInput.addEventListener("input", () => {
+  state.dateNotes[state.selectedDate] = dayNoteInput.value.trim();
+  renderCalendar();
+  saveState();
+});
+
+prevMonthButton.addEventListener("click", () => {
+  const [year, month] = state.calendarMonth.split("-").map(Number);
+  const date = new Date(year, month - 2, 1);
+  state.calendarMonth = monthKey(date);
+  renderCalendar();
+  saveState();
+});
+
+nextMonthButton.addEventListener("click", () => {
+  const [year, month] = state.calendarMonth.split("-").map(Number);
+  const date = new Date(year, month, 1);
+  state.calendarMonth = monthKey(date);
+  renderCalendar();
+  saveState();
+});
+
+ruleChecks.forEach((input) => {
+  input.addEventListener("change", () => {
+    state.rules[input.dataset.rule] = input.checked;
+    renderRules();
+    saveState();
+  });
+});
+
+ruleNoteInput.addEventListener("input", () => {
+  state.rules.note = ruleNoteInput.value.trim();
+  renderRules();
+  saveState();
 });
 
 tableButtons.forEach((button) => {
@@ -461,6 +629,7 @@ saveButton.addEventListener("click", () => {
   state.history.unshift({
     format: state.format,
     tableSize: state.tableSize,
+    date: state.selectedDate,
     createdAt: new Date().toLocaleString("ja-JP"),
     settings: {
       startScore: state.startScore,
@@ -468,9 +637,15 @@ saveButton.addEventListener("click", () => {
       oka: automaticOka(),
       uma: [...state.uma[state.tableSize]],
     },
+    rules: {
+      ...clone(state.rules),
+      names: activeRuleNames(),
+    },
+    memo: state.dateNotes[state.selectedDate] || "",
     results,
   });
   state.history = state.history.slice(0, 100);
+  renderCalendar();
   renderSummary();
   renderHistory();
   saveState();
@@ -482,6 +657,7 @@ clearHistoryButton.addEventListener("click", () => {
   }
 
   state.history = [];
+  renderCalendar();
   renderSummary();
   renderHistory();
   saveState();

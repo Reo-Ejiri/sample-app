@@ -170,6 +170,8 @@ h2 {
 }
 
 .settings,
+.day-panel,
+.rules-panel,
 .tournament-panel,
 .entry-panel,
 .result-panel,
@@ -243,6 +245,8 @@ label {
 }
 
 .tournament-panel,
+.day-panel,
+.rules-panel,
 .entry-panel,
 .result-panel,
 .summary-panel,
@@ -250,10 +254,135 @@ label {
   padding: 18px;
 }
 
+.day-panel,
+.rules-panel,
 .tournament-panel,
 .summary-panel,
 .history-panel {
   margin-bottom: 14px;
+}
+
+.day-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(280px, 1fr);
+  gap: 14px;
+}
+
+.calendar-card {
+  border: 1px solid #e3dccb;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fffdf6, #f8f0df);
+  padding: 12px;
+}
+
+.calendar-head,
+.calendar-week,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-head {
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.calendar-head strong {
+  color: var(--felt-dark);
+  text-align: center;
+}
+
+.calendar-week {
+  color: #81735c;
+  font-size: 0.74rem;
+  font-weight: 900;
+  margin-bottom: 6px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.calendar-grid span {
+  min-height: 38px;
+}
+
+.calendar-day {
+  min-height: 38px;
+  padding: 0;
+  border: 1px solid #e3dccb;
+  background: #fffdf6;
+  color: var(--ink);
+  position: relative;
+}
+
+.calendar-day:hover {
+  background: #f4ead5;
+}
+
+.calendar-day.active {
+  background: var(--felt);
+  color: #ffffff;
+}
+
+.calendar-day.has-record::after {
+  position: absolute;
+  right: 6px;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  content: "";
+}
+
+.memo-field {
+  align-content: start;
+}
+
+textarea {
+  width: 100%;
+  min-height: 162px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #ffffff;
+  color: var(--ink);
+  font: inherit;
+  outline: none;
+  padding: 11px;
+}
+
+textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(185, 131, 47, 0.2);
+}
+
+.rule-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.check-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #e3dccb;
+  border-radius: 8px;
+  background: #fffdf6;
+  padding: 12px;
+}
+
+.check-card input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--felt);
+}
+
+.rule-note {
+  margin-top: 12px;
 }
 
 .hidden {
@@ -473,6 +602,7 @@ label {
   }
 
   .settings,
+  .day-grid,
   .roster-list {
     grid-template-columns: 1fr 1fr;
   }
@@ -489,6 +619,8 @@ label {
   .result-card,
   .summary-row,
   .settings,
+  .day-grid,
+  .rule-grid,
   .roster-list,
   .uma-inputs {
     align-items: stretch;
