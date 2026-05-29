@@ -428,6 +428,11 @@ textarea:focus {
   gap: 10px;
 }
 
+.deposit-field {
+  width: min(100%, 220px);
+  margin-bottom: 12px;
+}
+
 .seat-row {
   display: grid;
   grid-template-columns: 70px 1fr 160px;
