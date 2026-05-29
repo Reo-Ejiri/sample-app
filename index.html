@@ -3,95 +3,73 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>麻雀点数管理</title>
+    <title>麻雀成績計算</title>
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
     <main class="app">
-      <section class="scoreboard" aria-labelledby="app-title">
+      <section class="workspace" aria-labelledby="app-title">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Mahjong Score Keeper</p>
-            <h1 id="app-title">麻雀点数管理</h1>
+            <p class="eyebrow">Mahjong Result Calculator</p>
+            <h1 id="app-title">麻雀成績計算</h1>
           </div>
-          <button id="reset-game" class="secondary-button" type="button">リセット</button>
+          <button id="reset-button" class="ghost-button" type="button">初期化</button>
         </header>
 
-        <section class="players" aria-label="プレイヤー点数">
-          <article class="player-card east">
-            <label for="player-0">東</label>
-            <input id="player-0" class="player-name" type="text" maxlength="12">
-            <strong id="score-0">25000</strong>
-          </article>
-          <article class="player-card south">
-            <label for="player-1">南</label>
-            <input id="player-1" class="player-name" type="text" maxlength="12">
-            <strong id="score-1">25000</strong>
-          </article>
-          <article class="player-card west">
-            <label for="player-2">西</label>
-            <input id="player-2" class="player-name" type="text" maxlength="12">
-            <strong id="score-2">25000</strong>
-          </article>
-          <article class="player-card north">
-            <label for="player-3">北</label>
-            <input id="player-3" class="player-name" type="text" maxlength="12">
-            <strong id="score-3">25000</strong>
-          </article>
+        <section class="settings" aria-label="計算設定">
+          <div class="mode-switch" role="group" aria-label="人数">
+            <button class="mode-button active" type="button" data-mode="4">4麻</button>
+            <button class="mode-button" type="button" data-mode="3">3麻</button>
+          </div>
+
+          <label>
+            配給原点
+            <input id="start-score" type="number" step="1000" min="0">
+          </label>
+          <label>
+            返し点
+            <input id="return-score" type="number" step="1000" min="0">
+          </label>
+          <label>
+            オカ
+            <input id="oka" type="number" step="1">
+          </label>
         </section>
 
-        <section class="controls" aria-label="点数入力">
-          <div class="round-info">
-            <label>
-              本場
-              <input id="honba" type="number" min="0" max="99" step="1">
-            </label>
-            <label>
-              供託
-              <input id="riichi-sticks" type="number" min="0" max="99" step="1">
-            </label>
-          </div>
+        <section class="main-grid">
+          <section class="entry-panel" aria-label="結果入力">
+            <div class="section-title">
+              <h2>対局結果</h2>
+              <span id="score-total">合計 100000</span>
+            </div>
 
-          <form id="score-form" class="score-form">
-            <label>
-              あがり
-              <select id="winner"></select>
-            </label>
+            <div id="player-inputs" class="player-inputs"></div>
 
-            <label>
-              支払い
-              <select id="payer"></select>
-            </label>
+            <div class="section-title uma-title">
+              <h2>順位ウマ</h2>
+              <span>1位から順に入力</span>
+            </div>
+            <div id="uma-inputs" class="uma-inputs"></div>
 
-            <label>
-              点数
-              <input id="points" type="number" min="100" max="64000" step="100" value="8000" required>
-            </label>
+            <button id="save-result" class="primary-button" type="button">この結果を記録</button>
+          </section>
 
-            <button type="submit">反映</button>
-          </form>
-
-          <div class="quick-points" aria-label="よく使う点数">
-            <button type="button" data-points="1000">1000</button>
-            <button type="button" data-points="2000">2000</button>
-            <button type="button" data-points="3900">3900</button>
-            <button type="button" data-points="5200">5200</button>
-            <button type="button" data-points="8000">8000</button>
-            <button type="button" data-points="12000">12000</button>
-          </div>
-
-          <div class="actions">
-            <button id="riichi-button" class="secondary-button" type="button">リーチ棒を出す</button>
-            <button id="undo-button" class="secondary-button" type="button">1つ戻す</button>
-          </div>
+          <section class="result-panel" aria-label="計算結果">
+            <div class="section-title">
+              <h2>ポイント</h2>
+              <span id="point-total">合計 0.0</span>
+            </div>
+            <div id="result-list" class="result-list"></div>
+          </section>
         </section>
 
-        <section class="history-panel" aria-label="履歴">
-          <div class="history-title">
-            <h2>履歴</h2>
-            <span id="total-score">合計 100000</span>
+        <section class="history-panel" aria-label="記録">
+          <div class="section-title">
+            <h2>記録</h2>
+            <button id="clear-history" class="ghost-button small-button" type="button">記録を削除</button>
           </div>
-          <ol id="history" class="history"></ol>
+          <ol id="history-list" class="history-list"></ol>
           <p id="empty-history" class="empty-history">まだ記録がありません。</p>
         </section>
       </section>
