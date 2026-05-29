@@ -18,6 +18,10 @@ const labels = {
   selectedDayTotal: "\u9078\u629e\u65e5\u306e\u5408\u8a08",
   correctionTotal: "\u4fee\u6b63\u5408\u8a08",
   correction: "\u4fee\u6b63",
+  edit: "\u7de8\u96c6",
+  delete: "\u524a\u9664",
+  saveGame: "\u3053\u306e\u534a\u8358\u3092\u8a18\u9332",
+  updateGame: "\u7de8\u96c6\u5185\u5bb9\u3092\u4fdd\u5b58",
 };
 
 const ruleNames = {
@@ -91,6 +95,7 @@ const scoreTotal = document.querySelector("#score-total");
 const pointTotal = document.querySelector("#point-total");
 const resultList = document.querySelector("#result-list");
 const saveButton = document.querySelector("#save-result");
+const cancelEditButton = document.querySelector("#cancel-edit");
 const summaryList = document.querySelector("#summary-list");
 const emptySummary = document.querySelector("#empty-summary");
 const gameCount = document.querySelector("#game-count");
@@ -113,6 +118,7 @@ const correctionNoteInput = document.querySelector("#correction-note");
 const saveCorrectionButton = document.querySelector("#save-correction");
 
 let state = loadState();
+let editingRecordId = null;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -168,6 +174,12 @@ function ensureStateShape() {
   if (!state.calendarMonth) {
     state.calendarMonth = state.selectedDate.slice(0, 7);
   }
+
+  state.history.forEach((record) => {
+    if (!record.id) {
+      record.id = crypto.randomUUID();
+    }
+  });
 }
 
 function activeSeats() {
@@ -424,9 +436,13 @@ function renderResults() {
   const scoreSum = activeSeats().reduce((sum, seat) => sum + Number(seat.score || 0), 0);
   const expectedScore = Number(state.startScore || 0) * state.tableSize;
   const pointSum = results.reduce((sum, result) => sum + result.point, 0);
+  const scoreValid = scoreSum === expectedScore;
+  const pointValid = Math.round(pointSum * 10) === 0;
 
   scoreTotal.textContent = `${labels.inputTotal} ${formatScore(scoreSum)} / ${labels.expected} ${formatScore(expectedScore)}`;
   pointTotal.textContent = `${labels.total} ${formatPoint(pointSum)}`;
+  scoreTotal.classList.toggle("invalid", !scoreValid);
+  pointTotal.classList.toggle("invalid", !pointValid);
   resultList.innerHTML = "";
 
   results.forEach((result) => {
@@ -452,6 +468,60 @@ function renderResults() {
     card.append(rank, detail, output);
     resultList.append(card);
   });
+}
+
+function validateCurrentGame(results = calculateResults()) {
+  const scoreSum = activeSeats().reduce((sum, seat) => sum + Number(seat.score || 0), 0);
+  const expectedScore = Number(state.startScore || 0) * state.tableSize;
+  const pointSum = results.reduce((sum, result) => sum + result.point, 0);
+
+  if (scoreSum !== expectedScore) {
+    alert(
+      `\u6700\u7d42\u6301\u3061\u70b9\u306e\u5408\u8a08\u304c\u5408\u3063\u3066\u3044\u307e\u305b\u3093\u3002\n\u5165\u529b\u5408\u8a08: ${formatScore(
+        scoreSum
+      )}\n\u57fa\u6e96: ${formatScore(expectedScore)}`
+    );
+    return false;
+  }
+
+  if (Math.round(pointSum * 10) !== 0) {
+    alert(
+      `\u30dd\u30a4\u30f3\u30c8\u5408\u8a08\u304c0.0\u306b\u306a\u3063\u3066\u3044\u307e\u305b\u3093\u3002\n\u5408\u8a08: ${formatPoint(
+        pointSum
+      )}\n\u9806\u4f4d\u30a6\u30de\u306e\u5408\u8a08\u3082\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002`
+    );
+    return false;
+  }
+
+  return true;
+}
+
+function currentRecord(results) {
+  return {
+    id: editingRecordId || crypto.randomUUID(),
+    format: state.format,
+    tableSize: state.tableSize,
+    participantCount: state.participantCount,
+    date: state.selectedDate,
+    createdAt: editingRecordId
+      ? state.history.find((record) => record.id === editingRecordId)?.createdAt || new Date().toLocaleString("ja-JP")
+      : new Date().toLocaleString("ja-JP"),
+    updatedAt: editingRecordId ? new Date().toLocaleString("ja-JP") : "",
+    settings: {
+      startScore: state.startScore,
+      returnScore: state.returnScore,
+      oka: automaticOka(),
+      uma: [...state.uma[state.tableSize]],
+    },
+    rules: {
+      ...clone(state.rules),
+      names: activeRuleNames(),
+    },
+    memo: state.dateNotes[state.selectedDate] || "",
+    roster: clone(state.roster),
+    seats: activeSeats().map((seat) => ({ ...seat })),
+    results,
+  };
 }
 
 function buildSummary() {
@@ -596,21 +666,104 @@ function renderSummary() {
   emptySummary.classList.toggle("hidden", summary.length > 0);
 }
 
+function seatsFromRecord(record) {
+  if (record.seats?.length) {
+    return clone(record.seats);
+  }
+
+  return [...record.results]
+    .sort((a, b) => (a.originalIndex ?? a.rank) - (b.originalIndex ?? b.rank))
+    .map((result, index) => ({
+      playerId: result.id || `p${index + 1}`,
+      name: result.name,
+      score: result.score,
+    }));
+}
+
+function editRecord(recordId) {
+  const record = state.history.find((item) => item.id === recordId);
+
+  if (!record) {
+    return;
+  }
+
+  editingRecordId = record.id;
+  state.format = record.format || state.format;
+  state.tableSize = record.tableSize || state.tableSize;
+  state.participantCount = record.participantCount || state.participantCount;
+  state.selectedDate = record.date || state.selectedDate;
+  state.calendarMonth = state.selectedDate.slice(0, 7);
+  state.startScore = record.settings?.startScore ?? state.startScore;
+  state.returnScore = record.settings?.returnScore ?? state.returnScore;
+  state.uma[state.tableSize] = [...(record.settings?.uma || state.uma[state.tableSize])];
+  state.rules = { ...clone(defaultState).rules, ...(record.rules || {}) };
+  state.roster = record.roster?.length ? clone(record.roster) : state.roster;
+  state.seats = seatsFromRecord(record);
+
+  if (record.memo) {
+    state.dateNotes[state.selectedDate] = record.memo;
+  }
+
+  renderAll();
+  document.querySelector(".entry-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function deleteRecord(recordId) {
+  if (!confirm("\u3053\u306e\u534a\u8358\u8a18\u9332\u3092\u524a\u9664\u3057\u307e\u3059\u304b\uff1f")) {
+    return;
+  }
+
+  state.history = state.history.filter((record) => record.id !== recordId);
+
+  if (editingRecordId === recordId) {
+    editingRecordId = null;
+  }
+
+  renderAll();
+}
+
+function renderEditState() {
+  saveButton.textContent = editingRecordId ? labels.updateGame : labels.saveGame;
+  cancelEditButton.classList.toggle("hidden", !editingRecordId);
+}
+
 function renderHistory() {
   historyList.innerHTML = "";
 
   state.history.forEach((record) => {
     const item = document.createElement("li");
+    item.className = "history-item";
     const rows = record.results
       .map((result) => `${result.rank}${labels.rank} ${result.name} ${formatPoint(result.point)}`)
       .join(" / ");
     const rules = record.rules?.names?.length ? ` [${record.rules.names.join(" / ")}]` : "";
-    item.textContent = `${record.date} ${record.tableSize}\u9ebb ${record.createdAt}${rules} - ${rows}`;
+
+    const text = document.createElement("span");
+    text.textContent = `${record.date} ${record.tableSize}\u9ebb ${record.createdAt}${rules} - ${rows}`;
+
+    const actions = document.createElement("div");
+    actions.className = "history-actions";
+
+    const editButton = document.createElement("button");
+    editButton.className = "ghost-button small-button";
+    editButton.type = "button";
+    editButton.textContent = labels.edit;
+    editButton.addEventListener("click", () => editRecord(record.id));
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "danger-button small-button";
+    deleteButton.type = "button";
+    deleteButton.textContent = labels.delete;
+    deleteButton.addEventListener("click", () => deleteRecord(record.id));
+
+    actions.append(editButton, deleteButton);
+    item.append(text, actions);
     historyList.append(item);
   });
 
   state.corrections.forEach((correction) => {
     const item = document.createElement("li");
+    item.className = "history-item correction-history";
     const rows = correction.items
       .map((entry) => `${entry.name} ${formatPoint(entry.point)}`)
       .join(" / ");
@@ -634,6 +787,7 @@ function renderAll() {
   renderSummary();
   renderCorrections();
   renderHistory();
+  renderEditState();
   saveState();
 }
 
@@ -741,30 +895,32 @@ saveButton.addEventListener("click", () => {
     return;
   }
 
-  state.history.unshift({
-    format: state.format,
-    tableSize: state.tableSize,
-    date: state.selectedDate,
-    createdAt: new Date().toLocaleString("ja-JP"),
-    settings: {
-      startScore: state.startScore,
-      returnScore: state.returnScore,
-      oka: automaticOka(),
-      uma: [...state.uma[state.tableSize]],
-    },
-    rules: {
-      ...clone(state.rules),
-      names: activeRuleNames(),
-    },
-    memo: state.dateNotes[state.selectedDate] || "",
-    results,
-  });
+  if (!validateCurrentGame(results)) {
+    renderResults();
+    return;
+  }
+
+  const record = currentRecord(results);
+
+  if (editingRecordId) {
+    state.history = state.history.map((item) => (item.id === editingRecordId ? record : item));
+    editingRecordId = null;
+  } else {
+    state.history.unshift(record);
+  }
+
   state.history = state.history.slice(0, 100);
   renderCalendar();
   renderSummary();
   renderCorrections();
   renderHistory();
+  renderEditState();
   saveState();
+});
+
+cancelEditButton.addEventListener("click", () => {
+  editingRecordId = null;
+  renderEditState();
 });
 
 saveCorrectionButton.addEventListener("click", () => {
@@ -801,10 +957,12 @@ clearHistoryButton.addEventListener("click", () => {
 
   state.history = [];
   state.corrections = [];
+  editingRecordId = null;
   renderCalendar();
   renderSummary();
   renderCorrections();
   renderHistory();
+  renderEditState();
   saveState();
 });
 
@@ -814,6 +972,7 @@ resetButton.addEventListener("click", () => {
   }
 
   state = clone(defaultState);
+  editingRecordId = null;
   renderAll();
 });
 

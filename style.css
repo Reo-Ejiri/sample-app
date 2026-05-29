@@ -467,6 +467,13 @@ textarea:focus {
   background: linear-gradient(180deg, #b38337, #85571d);
 }
 
+.entry-actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 16px;
+}
+
 .result-list {
   display: grid;
   gap: 10px;
@@ -563,6 +570,12 @@ textarea:focus {
   font-weight: 900;
 }
 
+#score-total.invalid,
+#point-total.invalid {
+  color: var(--red);
+  font-weight: 900;
+}
+
 .correction-list {
   display: grid;
   gap: 8px;
@@ -600,6 +613,27 @@ textarea:focus {
   border-radius: 6px;
   line-height: 1.6;
   padding: 10px;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.history-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.danger-button {
+  background: #f1dddd;
+  color: #8a2b2b;
+}
+
+.danger-button:hover {
+  background: #e7c8c8;
 }
 
 .empty-state {
@@ -648,6 +682,8 @@ textarea:focus {
   .result-card,
   .summary-row,
   .correction-row,
+  .entry-actions,
+  .history-item,
   .settings,
   .day-grid,
   .rule-grid,
