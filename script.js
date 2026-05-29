@@ -1,3 +1,15 @@
+const {
+  activeSeats: getActiveSeats,
+  automaticOka: getAutomaticOka,
+  calculateResults: getCalculatedResults,
+  depositPoint: getDepositPoint,
+  expectedScoreTotal: getExpectedScoreTotal,
+  formatPoint: formatPointValue,
+  formatScore: formatScoreValue,
+  gameTotals,
+  playerLabel: getPlayerLabel,
+} = window.MahjongCalculator;
+
 const labels = {
   player: "\u30d7\u30ec\u30a4\u30e4\u30fc",
   participant: "\u53c2\u52a0\u8005",
@@ -186,71 +198,35 @@ function ensureStateShape() {
 }
 
 function activeSeats() {
-  return state.seats.slice(0, state.tableSize);
+  return getActiveSeats(state);
 }
 
 function automaticOka() {
-  return ((Number(state.returnScore) - Number(state.startScore)) * state.tableSize) / 1000;
+  return getAutomaticOka(state);
 }
 
 function depositPoint() {
-  return Number(state.depositSticks || 0);
+  return getDepositPoint(state);
 }
 
 function expectedScoreTotal() {
-  return Number(state.startScore || 0) * state.tableSize - Number(state.depositSticks || 0) * 1000;
+  return getExpectedScoreTotal(state);
 }
 
 function formatScore(value) {
-  return Number(value || 0).toLocaleString("ja-JP");
+  return formatScoreValue(value);
 }
 
 function formatPoint(value) {
-  const rounded = Math.round(Number(value || 0) * 10) / 10;
-  return rounded > 0 ? `+${rounded.toFixed(1)}` : rounded.toFixed(1);
+  return formatPointValue(value);
 }
 
 function playerLabel(seat, index) {
-  if (state.format === "tournament") {
-    const player = state.roster.find((item) => item.id === seat.playerId);
-    return player?.name || `${labels.participant}${index + 1}`;
-  }
-
-  return seat.name || `${labels.player}${index + 1}`;
+  return getPlayerLabel(state, labels, seat, index);
 }
 
 function calculateResults() {
-  const ranked = activeSeats()
-    .map((seat, index) => ({
-      id: state.format === "tournament" ? seat.playerId : seat.name || `player-${index + 1}`,
-      originalIndex: index,
-      name: playerLabel(seat, index),
-      score: Number(seat.score || 0),
-    }))
-    .sort((a, b) => {
-      if (b.score !== a.score) {
-        return b.score - a.score;
-      }
-      return a.originalIndex - b.originalIndex;
-    });
-
-  return ranked.map((player, rankIndex) => {
-    const rank = rankIndex + 1;
-    const basePoint = (player.score - Number(state.returnScore || 0)) / 1000;
-    const uma = Number(state.uma[state.tableSize][rankIndex] || 0);
-    const oka = rank === 1 ? automaticOka() : 0;
-    const deposit = rank === 1 ? depositPoint() : 0;
-
-    return {
-      ...player,
-      rank,
-      basePoint,
-      uma,
-      oka,
-      deposit,
-      point: basePoint + uma + oka + deposit,
-    };
-  });
+  return getCalculatedResults(state, labels);
 }
 
 function renderSettings() {
@@ -447,16 +423,14 @@ function renderUma() {
 
 function renderResults() {
   const results = calculateResults();
-  const scoreSum = activeSeats().reduce((sum, seat) => sum + Number(seat.score || 0), 0);
-  const expectedScore = expectedScoreTotal();
-  const pointSum = results.reduce((sum, result) => sum + result.point, 0);
-  const scoreValid = scoreSum === expectedScore;
-  const pointValid = Math.round(pointSum * 10) === 0;
+  const totals = gameTotals(state, activeSeats(), results);
 
-  scoreTotal.textContent = `${labels.inputTotal} ${formatScore(scoreSum)} / ${labels.expected} ${formatScore(expectedScore)}`;
-  pointTotal.textContent = `${labels.total} ${formatPoint(pointSum)}`;
-  scoreTotal.classList.toggle("invalid", !scoreValid);
-  pointTotal.classList.toggle("invalid", !pointValid);
+  scoreTotal.textContent = `${labels.inputTotal} ${formatScore(totals.scoreSum)} / ${
+    labels.expected
+  } ${formatScore(totals.expectedScore)}`;
+  pointTotal.textContent = `${labels.total} ${formatPoint(totals.pointSum)}`;
+  scoreTotal.classList.toggle("invalid", !totals.scoreValid);
+  pointTotal.classList.toggle("invalid", !totals.pointValid);
   resultList.innerHTML = "";
 
   results.forEach((result) => {
@@ -487,23 +461,21 @@ function renderResults() {
 }
 
 function validateCurrentGame(results = calculateResults()) {
-  const scoreSum = activeSeats().reduce((sum, seat) => sum + Number(seat.score || 0), 0);
-  const expectedScore = expectedScoreTotal();
-  const pointSum = results.reduce((sum, result) => sum + result.point, 0);
+  const totals = gameTotals(state, activeSeats(), results);
 
-  if (scoreSum !== expectedScore) {
+  if (!totals.scoreValid) {
     alert(
       `\u6700\u7d42\u6301\u3061\u70b9\u306e\u5408\u8a08\u304c\u5408\u3063\u3066\u3044\u307e\u305b\u3093\u3002\n\u5165\u529b\u5408\u8a08: ${formatScore(
-        scoreSum
-      )}\n\u57fa\u6e96: ${formatScore(expectedScore)}`
+        totals.scoreSum
+      )}\n\u57fa\u6e96: ${formatScore(totals.expectedScore)}`
     );
     return false;
   }
 
-  if (Math.round(pointSum * 10) !== 0) {
+  if (!totals.pointValid) {
     alert(
       `\u30dd\u30a4\u30f3\u30c8\u5408\u8a08\u304c0.0\u306b\u306a\u3063\u3066\u3044\u307e\u305b\u3093\u3002\n\u5408\u8a08: ${formatPoint(
-        pointSum
+        totals.pointSum
       )}\n\u9806\u4f4d\u30a6\u30de\u306e\u5408\u8a08\u3082\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002`
     );
     return false;
