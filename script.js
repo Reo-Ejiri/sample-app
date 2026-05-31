@@ -1,3 +1,77 @@
+const fallbackCalculator = {
+  activeSeats(state) {
+    return state.seats.slice(0, state.tableSize);
+  },
+  automaticOka(state) {
+    return ((Number(state.returnScore) - Number(state.startScore)) * state.tableSize) / 1000;
+  },
+  calculateResults(state, labels) {
+    const ranked = fallbackCalculator
+      .activeSeats(state)
+      .map((seat, index) => ({
+        id: state.format === "tournament" ? seat.playerId : seat.name || `player-${index + 1}`,
+        originalIndex: index,
+        name: fallbackCalculator.playerLabel(state, labels, seat, index),
+        score: Number(seat.score || 0),
+      }))
+      .sort((a, b) => (b.score !== a.score ? b.score - a.score : a.originalIndex - b.originalIndex));
+
+    return ranked.map((player, rankIndex) => {
+      const rank = rankIndex + 1;
+      const basePoint = (player.score - Number(state.returnScore || 0)) / 1000;
+      const uma = Number(state.uma[state.tableSize][rankIndex] || 0);
+      const oka = rank === 1 ? fallbackCalculator.automaticOka(state) : 0;
+      const deposit = rank === 1 ? fallbackCalculator.depositPoint(state) : 0;
+
+      return {
+        ...player,
+        rank,
+        basePoint,
+        uma,
+        oka,
+        deposit,
+        point: basePoint + uma + oka + deposit,
+      };
+    });
+  },
+  depositPoint(state) {
+    return Number(state.depositSticks || 0);
+  },
+  expectedScoreTotal(state) {
+    return Number(state.startScore || 0) * state.tableSize - Number(state.depositSticks || 0) * 1000;
+  },
+  formatPoint(value) {
+    const rounded = Math.round(Number(value || 0) * 10) / 10;
+    return rounded > 0 ? `+${rounded.toFixed(1)}` : rounded.toFixed(1);
+  },
+  formatScore(value) {
+    return Number(value || 0).toLocaleString("ja-JP");
+  },
+  gameTotals(state, seats, results) {
+    const scoreSum = seats.reduce((sum, seat) => sum + Number(seat.score || 0), 0);
+    const expectedScore = fallbackCalculator.expectedScoreTotal(state);
+    const pointSum = results.reduce((sum, result) => sum + result.point, 0);
+
+    return {
+      scoreSum,
+      expectedScore,
+      pointSum,
+      scoreValid: scoreSum === expectedScore,
+      pointValid: Math.round(pointSum * 10) === 0,
+    };
+  },
+  playerLabel(state, labels, seat, index) {
+    if (state.format === "tournament") {
+      const player = state.roster.find((item) => item.id === seat.playerId);
+      return player?.name || `${labels.participant}${index + 1}`;
+    }
+
+    return seat.name || `${labels.player}${index + 1}`;
+  },
+};
+
+const calculator = { ...fallbackCalculator, ...(window.MahjongCalculator || {}) };
+
 const {
   activeSeats: getActiveSeats,
   automaticOka: getAutomaticOka,
@@ -8,7 +82,7 @@ const {
   formatScore: formatScoreValue,
   gameTotals,
   playerLabel: getPlayerLabel,
-} = window.MahjongCalculator;
+} = calculator;
 
 const labels = {
   player: "プレイヤー",
@@ -144,8 +218,22 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function safeRandomId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `id-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function loadState() {
-  const saved = localStorage.getItem(storageKey);
+  let saved = null;
+
+  try {
+    saved = localStorage.getItem(storageKey);
+  } catch {
+    saved = null;
+  }
 
   if (!saved) {
     return clone(defaultState);
@@ -167,7 +255,11 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {
+    // Some embedded previews disable storage. The app should still render and calculate.
+  }
 }
 
 function downloadText(filename, text, type) {
@@ -239,7 +331,7 @@ function ensureStateShape() {
 
   state.history.forEach((record) => {
     if (!record.id) {
-      record.id = crypto.randomUUID();
+      record.id = safeRandomId();
     }
   });
 }
@@ -555,7 +647,7 @@ function validateCurrentGame(results = calculateResults()) {
 
 function currentRecord(results) {
   return {
-    id: editingRecordId || crypto.randomUUID(),
+    id: editingRecordId || safeRandomId(),
     format: state.format,
     tableSize: state.tableSize,
     participantCount: state.participantCount,
