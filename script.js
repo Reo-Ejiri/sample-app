@@ -11,40 +11,40 @@ const {
 } = window.MahjongCalculator;
 
 const labels = {
-  player: "\u30d7\u30ec\u30a4\u30e4\u30fc",
-  participant: "\u53c2\u52a0\u8005",
-  normalName: "\u540d\u524d",
-  finalScore: "\u6700\u7d42\u6301\u3061\u70b9",
-  seat: "\u4eba\u76ee",
-  rank: "\u4f4d",
-  points: "\u70b9",
-  base: "\u7d20\u70b9",
-  uma: "\u30a6\u30de",
-  oka: "\u30aa\u30ab",
-  deposit: "\u4f9b\u8a17",
-  total: "\u5408\u8a08",
-  inputTotal: "\u5165\u529b\u5408\u8a08",
-  expected: "\u57fa\u6e96",
-  hanchan: "\u534a\u8358",
-  top: "1\u7740",
-  standardRules: "\u6a19\u6e96\u30eb\u30fc\u30eb",
-  selectedDayTotal: "\u9078\u629e\u65e5\u306e\u5408\u8a08",
-  correctionTotal: "\u4fee\u6b63\u5408\u8a08",
-  correction: "\u4fee\u6b63",
-  edit: "\u7de8\u96c6",
-  delete: "\u524a\u9664",
-  saveGame: "\u3053\u306e\u534a\u8358\u3092\u8a18\u9332",
-  updateGame: "\u7de8\u96c6\u5185\u5bb9\u3092\u4fdd\u5b58",
-  exportPrefix: "\u9ebb\u96c0\u6210\u7e3e",
+  player: "プレイヤー",
+  participant: "参加者",
+  normalName: "名前",
+  finalScore: "最終持ち点",
+  seat: "人目",
+  rank: "位",
+  points: "点",
+  base: "素点",
+  uma: "ウマ",
+  oka: "オカ",
+  deposit: "供託",
+  total: "合計",
+  inputTotal: "入力合計",
+  expected: "基準",
+  hanchan: "半荘",
+  top: "1着",
+  standardRules: "標準ルール",
+  selectedDayTotal: "選択日の合計",
+  correctionTotal: "修正合計",
+  correction: "修正",
+  edit: "編集",
+  delete: "削除",
+  saveGame: "この半荘を記録",
+  updateGame: "編集内容を保存",
+  exportPrefix: "麻雀成績",
 };
 
 const ruleNames = {
-  allRed: "\u5168\u8d64",
-  chips: "\u30c1\u30c3\u30d7\u3042\u308a",
-  abortiveDraw: "\u9014\u4e2d\u6d41\u5c40\u3042\u308a",
-  pao: "\u30d1\u30aa\u3042\u308a",
-  doubleRon: "\u30c0\u30d6\u30ed\u30f3\u3042\u308a",
-  openTanyao: "\u98df\u3044\u30bf\u30f3\u3042\u308a",
+  allRed: "全赤",
+  chips: "チップあり",
+  abortiveDraw: "途中流局あり",
+  pao: "パオあり",
+  doubleRon: "ダブロンあり",
+  openTanyao: "食いタンあり",
 };
 
 function todayKey() {
@@ -109,6 +109,7 @@ const seatInputs = document.querySelector("#seat-inputs");
 const umaInputs = document.querySelector("#uma-inputs");
 const scoreTotal = document.querySelector("#score-total");
 const pointTotal = document.querySelector("#point-total");
+const validationMessage = document.querySelector("#validation-message");
 const resultList = document.querySelector("#result-list");
 const saveButton = document.querySelector("#save-result");
 const cancelEditButton = document.querySelector("#cancel-edit");
@@ -470,6 +471,7 @@ function renderUma() {
 function renderResults() {
   const results = calculateResults();
   const totals = gameTotals(state, activeSeats(), results);
+  const validationMessages = currentGameValidationMessages(results, totals);
 
   scoreTotal.textContent = `${labels.inputTotal} ${formatScore(totals.scoreSum)} / ${
     labels.expected
@@ -477,6 +479,9 @@ function renderResults() {
   pointTotal.textContent = `${labels.total} ${formatPoint(totals.pointSum)}`;
   scoreTotal.classList.toggle("invalid", !totals.scoreValid);
   pointTotal.classList.toggle("invalid", !totals.pointValid);
+  validationMessage.textContent = validationMessages.join(" ");
+  validationMessage.classList.toggle("visible", validationMessages.length > 0);
+  saveButton.disabled = validationMessages.length > 0;
   resultList.innerHTML = "";
 
   results.forEach((result) => {
@@ -506,24 +511,42 @@ function renderResults() {
   });
 }
 
-function validateCurrentGame(results = calculateResults()) {
-  const totals = gameTotals(state, activeSeats(), results);
+function currentGameValidationMessages(results = calculateResults(), totals = gameTotals(state, activeSeats(), results)) {
+  const messages = [];
+  const selectedIds = activeSeats().map((seat) => seat.playerId);
+  const duplicated = state.format === "tournament" && new Set(selectedIds).size !== selectedIds.length;
+
+  if (duplicated) {
+    messages.push(
+      "大会モードでは同じ参加者を同じ半荘に重複して入れられません。"
+    );
+  }
 
   if (!totals.scoreValid) {
-    alert(
-      `\u6700\u7d42\u6301\u3061\u70b9\u306e\u5408\u8a08\u304c\u5408\u3063\u3066\u3044\u307e\u305b\u3093\u3002\n\u5165\u529b\u5408\u8a08: ${formatScore(
+    messages.push(
+      `最終持ち点の合計が基準と一致していません（${formatScore(
         totals.scoreSum
-      )}\n\u57fa\u6e96: ${formatScore(totals.expectedScore)}`
+      )} / ${formatScore(totals.expectedScore)}）。`
     );
-    return false;
   }
 
   if (!totals.pointValid) {
-    alert(
-      `\u30dd\u30a4\u30f3\u30c8\u5408\u8a08\u304c0.0\u306b\u306a\u3063\u3066\u3044\u307e\u305b\u3093\u3002\n\u5408\u8a08: ${formatPoint(
+    messages.push(
+      `ポイント合計が0.0になるよう、順位ウマや返し点を確認してください（現在 ${formatPoint(
         totals.pointSum
-      )}\n\u9806\u4f4d\u30a6\u30de\u306e\u5408\u8a08\u3082\u78ba\u8a8d\u3057\u3066\u304f\u3060\u3055\u3044\u3002`
+      )}）。`
     );
+  }
+
+  return messages;
+}
+
+function validateCurrentGame(results = calculateResults()) {
+  const messages = currentGameValidationMessages(results);
+
+  if (messages.length) {
+    renderResults();
+    alert(messages.join("\n"));
     return false;
   }
 
@@ -689,7 +712,7 @@ function renderSummary() {
     name.textContent = player.name;
 
     const meta = document.createElement("small");
-    meta.textContent = `${player.games}${labels.hanchan} / ${labels.top} ${player.top}\u56de`;
+    meta.textContent = `${player.games}${labels.hanchan} / ${labels.top} ${player.top}回`;
 
     const output = document.createElement("output");
     output.textContent = formatPoint(player.total);
@@ -745,7 +768,7 @@ function editRecord(recordId) {
 }
 
 function deleteRecord(recordId) {
-  if (!confirm("\u3053\u306e\u534a\u8358\u8a18\u9332\u3092\u524a\u9664\u3057\u307e\u3059\u304b\uff1f")) {
+  if (!confirm("この半荘記録を削除しますか？")) {
     return;
   }
 
@@ -775,7 +798,7 @@ function renderHistory() {
     const rules = record.rules?.names?.length ? ` [${record.rules.names.join(" / ")}]` : "";
 
     const text = document.createElement("span");
-    text.textContent = `${record.date} ${record.tableSize}\u9ebb ${record.createdAt}${rules} - ${rows}`;
+    text.textContent = `${record.date} ${record.tableSize}麻 ${record.createdAt}${rules} - ${rows}`;
 
     const actions = document.createElement("div");
     actions.className = "history-actions";
@@ -838,7 +861,7 @@ function importJson(file) {
     try {
       const imported = normalizeImportedState(JSON.parse(reader.result));
 
-      if (!confirm("\u73fe\u5728\u306e\u30c7\u30fc\u30bf\u3092\u8aad\u307f\u8fbc\u3093\u3060\u30c7\u30fc\u30bf\u3067\u7f6e\u304d\u63db\u3048\u307e\u3059\u304b\uff1f")) {
+      if (!confirm("現在のデータを読み込んだデータで置き換えますか？")) {
         return;
       }
 
@@ -846,7 +869,7 @@ function importJson(file) {
       editingRecordId = null;
       renderAll();
     } catch {
-      alert("\u8aad\u307f\u8fbc\u3081\u306a\u3044JSON\u30d5\u30a1\u30a4\u30eb\u3067\u3059\u3002");
+      alert("読み込めないJSONファイルです。");
     } finally {
       importJsonInput.value = "";
     }
@@ -979,7 +1002,7 @@ saveButton.addEventListener("click", () => {
   const duplicated = state.format === "tournament" && new Set(selectedIds).size !== selectedIds.length;
 
   if (duplicated) {
-    alert("\u5927\u4f1a\u30e2\u30fc\u30c9\u3067\u306f\u540c\u3058\u53c2\u52a0\u8005\u3092\u540c\u3058\u534a\u8358\u306b\u91cd\u8907\u3057\u3066\u5165\u308c\u3089\u308c\u307e\u305b\u3093\u3002");
+    alert("大会モードでは同じ参加者を同じ半荘に重複して入れられません。");
     return;
   }
 
@@ -1028,12 +1051,12 @@ saveCorrectionButton.addEventListener("click", () => {
   const total = items.reduce((sum, item) => sum + item.point, 0);
 
   if (!items.length) {
-    alert("\u4fee\u6b63\u30dd\u30a4\u30f3\u30c8\u3092\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002");
+    alert("修正ポイントを入力してください。");
     return;
   }
 
   if (Math.round(total * 10) !== 0) {
-    alert("\u4fee\u6b63\u5408\u8a08\u304c0.0\u306b\u306a\u308b\u3088\u3046\u306b\u5165\u529b\u3057\u3066\u304f\u3060\u3055\u3044\u3002");
+    alert("修正合計が0.0になるように入力してください。");
     return;
   }
 
@@ -1051,7 +1074,7 @@ saveCorrectionButton.addEventListener("click", () => {
 });
 
 clearHistoryButton.addEventListener("click", () => {
-  if (!confirm("\u8a18\u9332\u3092\u3059\u3079\u3066\u524a\u9664\u3057\u307e\u3059\u304b\uff1f")) {
+  if (!confirm("記録をすべて削除しますか？")) {
     return;
   }
 
@@ -1067,7 +1090,7 @@ clearHistoryButton.addEventListener("click", () => {
 });
 
 resetButton.addEventListener("click", () => {
-  if (!confirm("\u8a2d\u5b9a\u3068\u5165\u529b\u5185\u5bb9\u3092\u521d\u671f\u5316\u3057\u307e\u3059\u304b\uff1f")) {
+  if (!confirm("設定と入力内容を初期化しますか？")) {
     return;
   }
 
