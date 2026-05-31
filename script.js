@@ -119,6 +119,10 @@ const ruleNames = {
   pao: "パオあり",
   doubleRon: "ダブロンあり",
   openTanyao: "食いタンあり",
+  kitaNuki: "北抜きあり",
+  tsumoLoss: "ツモ損あり",
+  sanmaRedFives: "赤5筒・赤5索あり",
+  noMiddleManzu: "萬子2〜8なし",
 };
 
 function todayKey() {
@@ -162,6 +166,10 @@ const defaultState = {
     pao: true,
     doubleRon: true,
     openTanyao: true,
+    kitaNuki: true,
+    tsumoLoss: false,
+    sanmaRedFives: true,
+    noMiddleManzu: true,
     note: "",
   },
   dateNotes: {},
@@ -425,10 +433,16 @@ function renderSettings() {
   tournamentPanel.classList.toggle("hidden", state.format !== "tournament");
 }
 
+function ruleAppliesToTable(input) {
+  const tableSize = input.closest(".table-rule")?.dataset.tableSize;
+  return !tableSize || Number(tableSize) === state.tableSize;
+}
+
 function activeRuleNames(rules = state.rules) {
-  const names = Object.entries(ruleNames)
-    .filter(([key]) => rules[key])
-    .map(([, name]) => name);
+  const activeRuleKeys = ruleChecks
+    .filter((input) => ruleAppliesToTable(input))
+    .map((input) => input.dataset.rule);
+  const names = activeRuleKeys.filter((key) => rules[key]).map((key) => ruleNames[key]);
 
   if (rules.note) {
     names.push(rules.note);
@@ -493,6 +507,7 @@ function renderCalendar() {
 function renderRules() {
   ruleChecks.forEach((input) => {
     input.checked = Boolean(state.rules[input.dataset.rule]);
+    input.closest(".table-rule")?.classList.toggle("hidden", !ruleAppliesToTable(input));
   });
 
   ruleNoteInput.value = state.rules.note || "";

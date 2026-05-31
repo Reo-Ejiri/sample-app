@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>麻雀成績計算</title>
-    <link rel="stylesheet" href="style.css?v=20260531-6">
+    <link rel="stylesheet" href="style.css?v=20260531-7">
   </head>
   <body>
     <main class="app">
@@ -121,6 +121,22 @@
               <input class="rule-check" type="checkbox" data-rule="openTanyao">
               <span>食いタンあり</span>
             </label>
+            <label class="check-card table-rule hidden" data-table-size="3">
+              <input class="rule-check" type="checkbox" data-rule="kitaNuki">
+              <span>北抜きあり</span>
+            </label>
+            <label class="check-card table-rule hidden" data-table-size="3">
+              <input class="rule-check" type="checkbox" data-rule="tsumoLoss">
+              <span>ツモ損あり</span>
+            </label>
+            <label class="check-card table-rule hidden" data-table-size="3">
+              <input class="rule-check" type="checkbox" data-rule="sanmaRedFives">
+              <span>赤5筒・赤5索あり</span>
+            </label>
+            <label class="check-card table-rule hidden" data-table-size="3">
+              <input class="rule-check" type="checkbox" data-rule="noMiddleManzu">
+              <span>萬子2〜8なし</span>
+            </label>
           </div>
           <label class="rule-note">
             ルール補足
@@ -223,7 +239,7 @@
       </section>
     </main>
 
-    <script src="calculator.js?v=20260531-6"></script>
-    <script type="module" src="script.js?v=20260531-6"></script>
+    <script src="calculator.js?v=20260531-7"></script>
+    <script type="module" src="script.js?v=20260531-7"></script>
   </body>
 </html>
