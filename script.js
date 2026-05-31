@@ -80,7 +80,7 @@ const {
   expectedScoreTotal: getExpectedScoreTotal,
   formatPoint: formatPointValue,
   formatScore: formatScoreValue,
-  gameTotals,
+  gameTotals: getGameTotals,
   playerLabel: getPlayerLabel,
 } = calculator;
 
@@ -218,6 +218,19 @@ function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+function finiteNumber(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function dateKeyIsValid(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function monthKeyIsValid(value) {
+  return typeof value === "string" && /^\d{4}-\d{2}$/.test(value);
+}
+
 function safeRandomId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -305,6 +318,22 @@ function normalizeImportedState(payload) {
 }
 
 function ensureStateShape() {
+  state.format = state.format === "tournament" ? "tournament" : "normal";
+  state.tableSize = Number(state.tableSize) === 3 ? 3 : 4;
+  state.participantCount = Math.max(5, Math.min(32, Math.round(finiteNumber(state.participantCount, 8))));
+  state.startScore = finiteNumber(state.startScore, state.tableSize === 3 ? 35000 : 25000);
+  state.returnScore = finiteNumber(state.returnScore, state.tableSize === 3 ? 40000 : 30000);
+  state.depositSticks = Math.max(0, Math.round(finiteNumber(state.depositSticks, 0)));
+  state.seats = Array.isArray(state.seats) ? state.seats : clone(defaultState.seats);
+  state.roster = Array.isArray(state.roster) ? state.roster : clone(defaultState.roster);
+  state.history = Array.isArray(state.history) ? state.history : [];
+  state.corrections = Array.isArray(state.corrections) ? state.corrections : [];
+  state.dateNotes = state.dateNotes && typeof state.dateNotes === "object" ? state.dateNotes : {};
+  state.rules = { ...clone(defaultState).rules, ...(state.rules || {}) };
+  state.uma = { ...clone(defaultState).uma, ...(state.uma || {}) };
+  state.uma[3] = Array.isArray(state.uma[3]) && state.uma[3].length >= 3 ? state.uma[3] : clone(defaultState.uma[3]);
+  state.uma[4] = Array.isArray(state.uma[4]) && state.uma[4].length >= 4 ? state.uma[4] : clone(defaultState.uma[4]);
+
   while (state.seats.length < 4) {
     const number = state.seats.length + 1;
     state.seats.push({
@@ -321,13 +350,24 @@ function ensureStateShape() {
 
   state.roster = state.roster.slice(0, state.participantCount);
 
-  if (!state.selectedDate) {
+  if (!dateKeyIsValid(state.selectedDate)) {
     state.selectedDate = todayKey();
   }
 
-  if (!state.calendarMonth) {
+  if (!monthKeyIsValid(state.calendarMonth)) {
     state.calendarMonth = state.selectedDate.slice(0, 7);
   }
+
+  state.seats.forEach((seat, index) => {
+    seat.playerId = seat.playerId || `p${index + 1}`;
+    seat.name = seat.name || `${labels.player}${index + 1}`;
+    seat.score = finiteNumber(seat.score, state.startScore);
+  });
+
+  state.roster.forEach((player, index) => {
+    player.id = player.id || `p${index + 1}`;
+    player.name = player.name || `${labels.participant}${index + 1}`;
+  });
 
   state.history.forEach((record) => {
     if (!record.id) {
@@ -562,7 +602,7 @@ function renderUma() {
 
 function renderResults() {
   const results = calculateResults();
-  const totals = gameTotals(state, activeSeats(), results);
+  const totals = getGameTotals(state, activeSeats(), results);
   const validationMessages = currentGameValidationMessages(results, totals);
 
   scoreTotal.textContent = `${labels.inputTotal} ${formatScore(totals.scoreSum)} / ${
@@ -603,7 +643,7 @@ function renderResults() {
   });
 }
 
-function currentGameValidationMessages(results = calculateResults(), totals = gameTotals(state, activeSeats(), results)) {
+function currentGameValidationMessages(results = calculateResults(), totals = getGameTotals(state, activeSeats(), results)) {
   const messages = [];
   const selectedIds = activeSeats().map((seat) => seat.playerId);
   const duplicated = state.format === "tournament" && new Set(selectedIds).size !== selectedIds.length;
@@ -942,6 +982,14 @@ function renderAll() {
   saveState();
 }
 
+function showStartupError(error) {
+  const panel = document.querySelector(".entry-panel") || document.body;
+  const message = document.createElement("p");
+  message.className = "validation-message visible";
+  message.textContent = `起動エラー: ${error?.message || error}`;
+  panel.prepend(message);
+}
+
 function exportJson() {
   const filename = `${labels.exportPrefix}-${state.selectedDate}.json`;
   downloadText(filename, JSON.stringify(exportedState(), null, 2), "application/json");
@@ -1191,4 +1239,9 @@ resetButton.addEventListener("click", () => {
   renderAll();
 });
 
-renderAll();
+try {
+  renderAll();
+} catch (error) {
+  showStartupError(error);
+  throw error;
+}
