@@ -1,3 +1,4 @@
+(function () {
 const fallbackCalculator = {
   activeSeats(state) {
     return state.seats.slice(0, state.tableSize);
@@ -1260,3 +1261,4 @@ try {
   showStartupError(error);
   throw error;
 }
+})();
